@@ -38,16 +38,26 @@ termux-mcp token            # tampilkan token (dibuat otomatis, acak)
 Folder kerja default: `~/workspace` (ubah dengan `TERMUX_MCP_WORKSPACE`).
 Di Termux, jalankan `termux-wake-lock` supaya Android tidak mematikan proses di background.
 
-## Tunnel (manual untuk sekarang)
+## Tunnel (otomatis dengan ngrok)
 
-Contoh dengan ngrok (perlu akun ngrok):
+Perlu akun ngrok (gratis) dan binary `ngrok` terpasang (https://ngrok.com/download).
 
 ```bash
-ngrok config add-authtoken <authtoken-anda>
-ngrok http 8000
+termux-mcp tunnel setup           # sekali saja: authtoken ngrok + domain tetap (opsional)
+termux-mcp serve --tunnel ngrok   # server dan tunnel sekaligus
 ```
 
-Catat alamat HTTPS-nya. Batas dan harga ngrok bisa berubah, cek dashboard mereka. Tunnel otomatis ada di roadmap.
+Server mencetak URL dan nama header untuk konektor Claude. Token tidak dicetak secara default:
+pakai `termux-mcp token`, atau `--show-token`. Kalau `termux-clipboard-set` (Termux:API) tersedia, URL ikut disalin.
+
+- **Domain tetap**: akun ngrok gratis mendapat satu dev domain (lihat dashboard ngrok). Isi saat `tunnel setup`
+  supaya URL konektor tidak berubah. Tanpa domain, URL acak tiap start dan konektor harus diedit ulang.
+- **Authtoken** disimpan oleh ngrok sendiri (`ngrok config add-authtoken`), bukan oleh termux-mcp.
+- **Putus sambung**: tunnel dinyalakan ulang otomatis (maks. 5 kali berturut-turut). Error fatal
+  (authtoken salah, batas sesi akun, domain sedang dipakai) menghentikan percobaan dan menampilkan petunjuk.
+- Batas dan harga ngrok bisa berubah. Cek dashboard mereka. Akun gratis biasanya dibatasi jumlah sesi agent.
+
+Tanpa `--tunnel`, Anda bisa menjalankan tunnel sendiri (`ngrok http 8000`) dan memakai URL-nya.
 
 ## Menambah konektor di Claude
 
@@ -76,6 +86,8 @@ makanya server membaca `x-api-key`. Buka chat baru setelah konektor ditambahkan 
 | `TERMUX_MCP_WORKSPACE` | Folder kerja untuk tool file | `~/workspace` |
 | `TERMUX_MCP_HOME` | Lokasi token, audit log, plugin | `~/.config/termux-mcp` |
 | `TERMUX_MCP_DISABLE` | Tool yang dimatikan (pisah koma) | kosong |
+| `TERMUX_MCP_TUNNEL` | Nyalakan tunnel otomatis (`ngrok`), setara `--tunnel` | kosong |
+| `TERMUX_MCP_NGROK_DOMAIN` | Domain tetap ngrok (menimpa `tunnel setup`) | kosong |
 
 ## Plugin
 
@@ -83,8 +95,10 @@ Lihat [plugins/README.md](plugins/README.md) dan `examples/plugins/hello.py`.
 
 ## Status
 
-Versi awal (0.1.0). Sudah ada: server, auth token, audit log, tool dasar, plugin, `doctor`.
-Belum ada: tunnel otomatis, mode non-root, konfirmasi tool berbahaya, tool khusus video/audio, tes otomatis.
+Versi awal (0.1.0). Sudah ada: server, auth token, audit log, tool dasar, plugin, `doctor`, tunnel ngrok otomatis.
+Tes otomatis (`PYTHONPATH=src python -m unittest discover -s tests -v`) memakai ngrok tiruan untuk logika tunnel;
+belum diuji dengan ngrok asli di berbagai jenis akun.
+Belum ada: tunnel Cloudflare, mode non-root, konfirmasi tool berbahaya, tool khusus video/audio.
 
 ## Lisensi
 

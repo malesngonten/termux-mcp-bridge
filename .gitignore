@@ -1,0 +1,14 @@
+__pycache__/
+*.pyc
+*.egg-info/
+build/
+dist/
+.venv/
+venv/
+.env
+.mcp_token
+token
+audit.log
+*.log
+.jobs/
+node_modules/

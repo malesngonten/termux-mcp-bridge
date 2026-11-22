@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "termux-mcp-bridge"
+version = "0.1.0"
+description = "Jembatan MCP antara aplikasi Claude dan terminal Termux/Linux di perangkat sendiri"
+readme = "README.md"
+requires-python = ">=3.10"
+license = "MIT"
+license-files = ["LICENSE"]
+dependencies = [
+    "mcp>=1.30,<2",
+    "uvicorn>=0.30",
+]
+
+[project.scripts]
+termux-mcp = "termux_mcp.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]

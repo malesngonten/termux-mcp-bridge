@@ -28,10 +28,38 @@ FATAL_HINTS = {
 }
 _ERR_RE = re.compile(r"ERR_NGROK_\d+")
 _URL_RE = re.compile(r"url=(https://\S+)")
+_CF_URL_RE = re.compile(r"https://[a-z0-9-]+\.trycloudflare\.com")
+
+PROVIDERS = ("ngrok", "cloudflare")
 
 
 def find_ngrok():
     return shutil.which("ngrok")
+
+
+def find_cloudflared():
+    return shutil.which("cloudflared")
+
+
+def parse_cloudflare_url(line: str) -> str | None:
+    """Ambil URL trycloudflare.com dari satu baris log cloudflared."""
+    m = _CF_URL_RE.search(line or "")
+    return m.group(0) if m else None
+
+
+def ngrok_add_authtoken(token: str) -> tuple[bool, str]:
+    """Simpan authtoken lewat `ngrok config add-authtoken`. Mengembalikan (berhasil, pesan)."""
+    binary = find_ngrok()
+    if not binary:
+        return False, "ngrok belum terpasang"
+    try:
+        r = subprocess.run([binary, "config", "add-authtoken", token], capture_output=True, text=True, timeout=20,
+                           stdin=subprocess.DEVNULL)
+    except (OSError, subprocess.TimeoutExpired) as e:
+        return False, f"gagal menjalankan ngrok: {e}"
+    if r.returncode != 0:
+        return False, "authtoken ditolak atau gagal disimpan"
+    return True, "ok"
 
 
 def load_settings() -> dict:
@@ -60,7 +88,8 @@ def ngrok_has_authtoken() -> bool:
     paths = []
     if binary:
         try:
-            out = subprocess.run([binary, "config", "check"], capture_output=True, text=True, timeout=10).stdout
+            out = subprocess.run([binary, "config", "check"], capture_output=True, text=True, timeout=10,
+                                 stdin=subprocess.DEVNULL).stdout
             m = re.search(r"at (\S+)", out)
             if m:
                 paths.append(Path(m.group(1)))
@@ -100,6 +129,8 @@ def fatal_code(line: str) -> str | None:
 
 
 class NgrokTunnel:
+    NAME = "ngrok"
+
     def __init__(self, port: int, domain: str | None = None, on_url=None, binary: str | None = None,
                  max_restarts: int = 5, backoff=lambda n: min(2 ** n, 30)):
         self.port = port
@@ -116,9 +147,15 @@ class NgrokTunnel:
 
     def start(self):
         if not self.binary:
-            raise RuntimeError("ngrok tidak ditemukan. Pasang dulu: https://ngrok.com/download")
+            raise RuntimeError(f"{self.NAME} tidak ditemukan. Pasang dulu.")
         self._thread = threading.Thread(target=self._run, name="ngrok-tunnel", daemon=True)
         self._thread.start()
+
+    def _parse(self, line):
+        return parse_url(line)
+
+    def _fatal(self, line):
+        return fatal_code(line)
 
     def _cmd(self):
         cmd = [self.binary, "http", str(self.port), "--log", "stdout", "--log-format", "json"]
@@ -135,18 +172,18 @@ class NgrokTunnel:
                 self.proc = subprocess.Popen(self._cmd(), stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                     stdin=subprocess.DEVNULL, text=True, errors="replace", start_new_session=True)
             except OSError as e:
-                self.stopped_reason = f"gagal menjalankan ngrok: {e}"
+                self.stopped_reason = f"gagal menjalankan {self.NAME}: {e}"
                 print(f"[tunnel] {self.stopped_reason}", file=sys.stderr)
                 return
             fatal = None
             for line in self.proc.stdout:
                 recent.append(line.strip())
-                url = parse_url(line)
+                url = self._parse(line)
                 if url and url != self.url:
                     self.url = url
                     if self.on_url:
                         self.on_url(url)
-                fatal = fatal or fatal_code(line)
+                fatal = fatal or self._fatal(line)
             self.proc.wait()
             self.proc.stdout.close()
             self.url = None
@@ -160,11 +197,11 @@ class NgrokTunnel:
                 fails = 0
             fails += 1
             if fails > self.max_restarts:
-                self.stopped_reason = "ngrok terus berhenti; menyerah. Log terakhir: " + (recent[-1] if recent else "-")
+                self.stopped_reason = f"{self.NAME} terus berhenti; menyerah. Log terakhir: " + (recent[-1] if recent else "-")
                 print(f"[tunnel] {self.stopped_reason}", file=sys.stderr)
                 return
             wait = self.backoff(fails)
-            print(f"[tunnel] ngrok berhenti (kode {self.proc.returncode}), mencoba lagi dalam {wait}s ({fails}/{self.max_restarts})",
+            print(f"[tunnel] {self.NAME} berhenti (kode {self.proc.returncode}), mencoba lagi dalam {wait}s ({fails}/{self.max_restarts})",
                   file=sys.stderr)
             if self._stop.wait(wait):
                 return
@@ -183,3 +220,28 @@ class NgrokTunnel:
                     pass
         if self._thread:
             self._thread.join(timeout=3)
+
+
+class CloudflareTunnel(NgrokTunnel):
+    """Cloudflare Quick Tunnel: tanpa akun, URL *.trycloudflare.com acak dan berubah tiap start."""
+    NAME = "cloudflared"
+
+    def __init__(self, port: int, domain: str | None = None, on_url=None, binary: str | None = None, **kw):
+        super().__init__(port, None, on_url=on_url, binary=binary or find_cloudflared(), **kw)
+
+    def _parse(self, line):
+        return parse_cloudflare_url(line)
+
+    def _fatal(self, line):
+        return None
+
+    def _cmd(self):
+        return [self.binary, "tunnel", "--no-autoupdate", "--url", f"http://127.0.0.1:{self.port}"]
+
+
+def make_tunnel(provider: str, port: int, domain: str | None = None, on_url=None):
+    if provider == "ngrok":
+        return NgrokTunnel(port, domain, on_url=on_url)
+    if provider == "cloudflare":
+        return CloudflareTunnel(port, on_url=on_url)
+    raise ValueError(f"penyedia tunnel tidak dikenal: {provider}")

@@ -38,6 +38,27 @@ termux-mcp token            # tampilkan token (dibuat otomatis, acak)
 Folder kerja default: `~/workspace` (ubah dengan `TERMUX_MCP_WORKSPACE`).
 Di Termux, jalankan `termux-wake-lock` supaya Android tidak mematikan proses di background.
 
+## Panel setup (web UI)
+
+Cara termudah untuk pemula: semua langkah (token, tunnel, nyalakan server, panduan konektor) dalam satu halaman.
+
+```bash
+termux-mcp ui
+```
+
+Buka link yang dicetak di terminal (berisi kode rahasia sekali jalan) di browser HP. Di halaman itu:
+
+1. Salin atau buat token.
+2. Pilih tunnel: **Cloudflare** (tanpa akun, alamat berubah tiap start) atau **ngrok** (alamat tetap, perlu akun gratis).
+3. Tekan **Nyalakan server**, lalu ikuti panduan mengisi konektor di app Claude (nilai siap salin).
+
+Semua yang bisa dilakukan panel tetap bisa lewat perintah (`serve`, `token`, `tunnel setup`). Panel memanggil logika yang sama.
+
+Keamanan panel: hanya bind ke `127.0.0.1` di port terpisah (default 8787) dari server MCP, jadi tunnel tidak pernah
+menunjuk ke panel. Akses butuh link berisi kode acak dari terminal, lalu sesi dipegang cookie `HttpOnly` + `SameSite=Strict`;
+header Host dan header permintaan dicek. Token hanya dikirim ke halaman saat lu menekan Tampilkan atau Salin.
+Server yang dinyalakan lewat panel tetap hidup setelah panel ditutup; matikan dari panel.
+
 ## Tunnel (otomatis dengan ngrok)
 
 Perlu akun ngrok (gratis) dan binary `ngrok` terpasang (https://ngrok.com/download).
@@ -58,6 +79,17 @@ pakai `termux-mcp token`, atau `--show-token`. Kalau `termux-clipboard-set` (Ter
 - Batas dan harga ngrok bisa berubah. Cek dashboard mereka. Akun gratis biasanya dibatasi jumlah sesi agent.
 
 Tanpa `--tunnel`, Anda bisa menjalankan tunnel sendiri (`ngrok http 8000`) dan memakai URL-nya.
+
+## Tunnel Cloudflare (tanpa akun)
+
+Alternatif tanpa daftar: Cloudflare Quick Tunnel. Perlu binary `cloudflared` (Termux: `pkg install cloudflared`).
+
+```bash
+termux-mcp serve --tunnel cloudflare
+```
+
+Alamatnya `*.trycloudflare.com` dan **berubah setiap server dinyalakan ulang**, jadi konektor di Claude harus
+diperbarui tiap kali. Untuk alamat tetap, pakai ngrok. Ketentuan Quick Tunnel dari Cloudflare bisa berubah; cek dokumentasi mereka.
 
 ## Menambah konektor di Claude
 
@@ -95,10 +127,11 @@ Lihat [plugins/README.md](plugins/README.md) dan `examples/plugins/hello.py`.
 
 ## Status
 
-Versi awal (0.1.0). Sudah ada: server, auth token, audit log, tool dasar, plugin, `doctor`, tunnel ngrok otomatis.
-Tes otomatis (`PYTHONPATH=src python -m unittest discover -s tests -v`) memakai ngrok tiruan untuk logika tunnel;
-belum diuji dengan ngrok asli di berbagai jenis akun.
-Belum ada: tunnel Cloudflare, mode non-root, konfirmasi tool berbahaya, tool khusus video/audio.
+Versi awal (0.1.0). Sudah ada: server, auth token, audit log, tool dasar, plugin, `doctor`, tunnel ngrok dan
+Cloudflare otomatis, panel setup web (`termux-mcp ui`).
+Tes otomatis (`PYTHONPATH=src python -m unittest discover -s tests -v`) memakai ngrok dan cloudflared tiruan;
+belum diuji dengan keduanya yang asli, dan tampilan panel belum diuji lintas browser.
+Belum ada: mode non-root, konfirmasi tool berbahaya, tool khusus video/audio.
 
 ## Lisensi
 

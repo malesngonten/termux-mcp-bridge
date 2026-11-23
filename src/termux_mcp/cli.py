@@ -1,4 +1,4 @@
-"""CLI: termux-mcp serve | token | tunnel setup | doctor"""
+"""CLI: termux-mcp serve | ui | token | tunnel setup | doctor"""
 import argparse
 import getpass
 import os
@@ -6,6 +6,7 @@ import shutil
 import subprocess
 import sys
 from . import __version__, config
+from . import state
 from . import tunnel as tn
 
 
@@ -20,7 +21,7 @@ def _copy_clipboard(text: str) -> bool:
         return False
 
 
-def _announce(url: str, show_token: bool, stable: bool):
+def _announce(url: str, show_token: bool, stable: bool, provider: str = "ngrok"):
     full = url.rstrip("/") + "/mcp"
     copied = _copy_clipboard(full)
     print("\n" + "=" * 54)
@@ -31,7 +32,10 @@ def _announce(url: str, show_token: bool, stable: bool):
         print(f"  Nilai  : {config.load_token()}")
     else:
         print("  Nilai  : token lu. Tampilkan dengan: termux-mcp token")
-    if not stable:
+    if provider == "cloudflare":
+        print("  Catatan: URL Cloudflare berubah tiap start; edit konektor kalau server dinyalakan ulang.")
+        print("           Untuk URL tetap: pakai ngrok (termux-mcp tunnel setup).")
+    elif not stable:
         print("  Catatan: URL ini acak dan berubah tiap start.")
         print("           Untuk URL tetap: termux-mcp tunnel setup --domain <domain-ngrok-lu>")
     print("=" * 54 + "\n", flush=True)
@@ -47,12 +51,16 @@ def cmd_serve(a):
         print("PERINGATAN: host bukan loopback. Server bisa dijangkau dari jaringan lokal tanpa tunnel.", file=sys.stderr)
 
     tunnel = None
-    if a.tunnel:
+    if a.tunnel == "ngrok":
         if not tn.find_ngrok():
             print("ngrok tidak ditemukan. Pasang dulu: https://ngrok.com/download lalu jalankan: termux-mcp tunnel setup", file=sys.stderr)
             sys.exit(1)
         if not tn.ngrok_has_authtoken():
             print("Authtoken ngrok belum diatur. Jalankan: termux-mcp tunnel setup", file=sys.stderr)
+            sys.exit(1)
+    elif a.tunnel == "cloudflare":
+        if not tn.find_cloudflared():
+            print("cloudflared tidak ditemukan. Di Termux: pkg install cloudflared", file=sys.stderr)
             sys.exit(1)
 
     app, _, plugins = build_app()
@@ -61,17 +69,31 @@ def cmd_serve(a):
     if plugins:
         print("plugin: " + ", ".join(plugins))
 
+    state.write(pid=os.getpid(), port=a.port, tunnel=a.tunnel or None, url=None)
     if a.tunnel:
-        domain = tn.normalize_domain(a.tunnel_domain or os.environ.get("TERMUX_MCP_NGROK_DOMAIN")
-                                     or tn.load_settings().get("domain"))
-        tunnel = tn.NgrokTunnel(a.port, domain, on_url=lambda u: _announce(u, a.show_token, bool(domain)))
+        domain = None
+        if a.tunnel == "ngrok":
+            domain = tn.normalize_domain(a.tunnel_domain or os.environ.get("TERMUX_MCP_NGROK_DOMAIN")
+                                         or tn.load_settings().get("domain"))
+
+        def on_url(u):
+            state.update(url=u)
+            _announce(u, a.show_token, bool(domain), a.tunnel)
+
+        tunnel = tn.make_tunnel(a.tunnel, a.port, domain, on_url=on_url)
         tunnel.start()
-        print("menyalakan tunnel ngrok..." + (f" (domain tetap: {domain})" if domain else ""))
+        print(f"menyalakan tunnel {a.tunnel}..." + (f" (domain tetap: {domain})" if domain else ""))
     try:
         uvicorn.run(app, host=a.host, port=a.port)
     finally:
         if tunnel:
             tunnel.stop()
+        state.clear()
+
+
+def cmd_ui(a):
+    from . import webui
+    webui.run(port=a.port, mcp_port=a.mcp_port)
 
 
 def cmd_token(a):
@@ -149,6 +171,9 @@ def cmd_doctor(a):
         print(f"[{'OK' if dom else '--'}] domain tetap: {dom or 'belum diatur (URL acak tiap start)'}")
     else:
         print("[--] ngrok tidak ditemukan (opsional, untuk serve --tunnel ngrok)")
+    print(f"[{'OK' if tn.find_cloudflared() else '--'}] cloudflared "
+          + ("terpasang (serve --tunnel cloudflare, tanpa akun)" if tn.find_cloudflared()
+             else "tidak ditemukan (opsional, untuk serve --tunnel cloudflare)"))
     sys.exit(0 if ok else 1)
 
 
@@ -160,11 +185,16 @@ def main():
     s = sub.add_parser("serve", help="jalankan server")
     s.add_argument("--host", default="127.0.0.1")
     s.add_argument("--port", type=int, default=8000)
-    s.add_argument("--tunnel", nargs="?", const="ngrok", choices=["ngrok"], default=os.environ.get("TERMUX_MCP_TUNNEL"),
-                   help="nyalakan tunnel publik sekalian (saat ini: ngrok)")
+    s.add_argument("--tunnel", nargs="?", const="ngrok", choices=list(tn.PROVIDERS), default=os.environ.get("TERMUX_MCP_TUNNEL"),
+                   help="nyalakan tunnel publik sekalian: ngrok (URL tetap, perlu akun) atau cloudflare (tanpa akun, URL berubah)")
     s.add_argument("--tunnel-domain", help="domain statis ngrok (menimpa pengaturan tersimpan)")
     s.add_argument("--show-token", action="store_true", help="cetak token bersama info konektor (default: disembunyikan)")
     s.set_defaults(fn=cmd_serve)
+
+    u = sub.add_parser("ui", help="buka panel setup di browser (hanya bisa diakses dari perangkat ini)")
+    u.add_argument("--port", type=int, default=8787, help="port panel (default 8787; harus beda dari port server MCP)")
+    u.add_argument("--mcp-port", type=int, default=8000, help="port server MCP yang dikelola panel")
+    u.set_defaults(fn=cmd_ui)
 
     t = sub.add_parser("token", help="tampilkan token (dibuat otomatis kalau belum ada)")
     t.add_argument("--new", action="store_true", help="buat token baru (yang lama tidak berlaku)")

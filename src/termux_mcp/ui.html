@@ -1,0 +1,378 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>termux-mcp</title>
+<style nonce="__NONCE__">
+:root{
+  --bg:#f3f3f1; --card:#ffffff; --tone:#f0f0ee; --tone2:#e6e6e3;
+  --ink:#141414; --mute:#7a7a76; --on-ink:#ffffff;
+  --ok:#1f9d6b; --warn:#d99a14; --off:#b4b4af; --bad:#d6453d;
+  --shadow:0 1px 2px rgba(0,0,0,.04),0 10px 28px rgba(0,0,0,.06);
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#0f0f0f; --card:#1a1a1a; --tone:#242424; --tone2:#2e2e2e;
+    --ink:#f2f2f0; --mute:#8d8d89; --on-ink:#111111;
+    --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 28px rgba(0,0,0,.35);
+  }
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{background:var(--bg)}
+body{
+  margin:0;padding:28px 16px 64px;color:var(--ink);background:var(--bg);
+  font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+}
+main{max-width:520px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
+header{padding:4px 6px 8px}
+h1{margin:0;font-size:22px;font-weight:650;letter-spacing:-.01em}
+header p{margin:2px 0 0;color:var(--mute);font-size:14px}
+section{background:var(--card);border-radius:22px;padding:20px;box-shadow:var(--shadow)}
+h2{margin:0 0 4px;font-size:13px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--mute)}
+.sub{margin:0 0 14px;color:var(--mute);font-size:14px}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.grow{flex:1;min-width:0}
+.mt10{margin-top:10px} .mt12{margin-top:12px}
+
+.status{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+.dot{width:12px;height:12px;border-radius:50%;background:var(--off);flex:none}
+.dot.ok{background:var(--ok)} .dot.warn{background:var(--warn)} .dot.bad{background:var(--bad)}
+.status b{font-size:18px;font-weight:650}
+.status small{display:block;color:var(--mute);font-size:13px;line-height:1.35}
+
+button{
+  font:inherit;font-size:15px;font-weight:600;border:0;border-radius:14px;padding:12px 16px;
+  background:var(--tone);color:var(--ink);cursor:pointer;transition:background .15s,opacity .15s,transform .05s;
+}
+button:active{transform:scale(.98)}
+button:hover{background:var(--tone2)}
+button.primary{background:var(--ink);color:var(--on-ink)}
+button.primary:hover{opacity:.88;background:var(--ink)}
+button.danger{color:var(--bad)}
+button.small{padding:8px 12px;font-size:13px;border-radius:11px}
+button:disabled{opacity:.45;cursor:default;transform:none}
+.wide{width:100%}
+
+.chip{
+  background:var(--tone);border-radius:14px;padding:12px 14px;font:13px/1.45 ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  word-break:break-all;color:var(--ink);
+}
+.chip.mute{color:var(--mute)}
+.chiprow{display:flex;gap:8px;align-items:stretch;margin-bottom:10px}
+.chiprow .chip{flex:1;min-width:0}
+.chiprow button{flex:none}
+.label{display:block;margin:12px 0 6px;font-size:13px;color:var(--mute)}
+
+input{
+  width:100%;font:inherit;font-size:15px;color:var(--ink);background:var(--tone);border:0;border-radius:14px;
+  padding:12px 14px;outline:none;transition:background .15s;
+}
+input:focus{background:var(--tone2)}
+input::placeholder{color:var(--mute)}
+
+.seg{display:flex;background:var(--tone);border-radius:16px;padding:4px;gap:4px;margin-bottom:14px}
+.seg button{flex:1;background:transparent;padding:10px 8px;font-size:14px}
+.seg button:hover{background:var(--tone2)}
+.seg button.on{background:var(--card);box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.seg.locked button{opacity:.5;pointer-events:none}
+.seg.locked button.on{opacity:1}
+
+.note{margin:0 0 10px;font-size:14px;color:var(--mute)}
+.note.ok{color:var(--ok)} .note.bad{color:var(--bad)}
+.banner{background:var(--tone);border-radius:14px;padding:12px 14px;margin-bottom:12px;font-size:14px}
+.banner button{margin-top:8px}
+
+ol.steps{margin:0;padding:0;list-style:none;counter-reset:s;display:flex;flex-direction:column;gap:16px}
+ol.steps li{counter-increment:s;padding-left:34px;position:relative;font-size:15px}
+ol.steps li::before{
+  content:counter(s);position:absolute;left:0;top:0;width:24px;height:24px;border-radius:50%;
+  background:var(--tone);color:var(--mute);font-size:13px;font-weight:600;display:flex;align-items:center;justify-content:center;
+}
+ol.steps .chiprow{margin:8px 0 0}
+
+details{margin-top:4px}
+summary{cursor:pointer;color:var(--mute);font-size:14px;padding:4px 0}
+pre{margin:10px 0 0;white-space:pre-wrap;word-break:break-all;max-height:240px;overflow:auto}
+
+#toast{
+  position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(20px);opacity:0;pointer-events:none;
+  background:var(--ink);color:var(--on-ink);padding:12px 18px;border-radius:999px;font-size:14px;font-weight:600;
+  max-width:88vw;text-align:center;transition:opacity .2s,transform .2s;
+}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+#expired{
+  position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;
+  padding:32px;text-align:center;color:var(--mute);z-index:9;
+}
+[hidden]{display:none !important}
+</style>
+</head>
+<body>
+<div id="expired" hidden>Sesi panel habis atau panel sudah ditutup.<br>Jalankan <b>termux-mcp ui</b> lagi dan buka link barunya.</div>
+<main>
+  <header>
+    <h1>termux-mcp</h1>
+    <p>Hubungkan Claude ke terminal di perangkat ini.</p>
+  </header>
+
+  <section id="s-status">
+    <div class="status">
+      <div class="dot" id="dot"></div>
+      <div class="grow"><b id="st-title">Memuat...</b><small id="st-sub"></small></div>
+    </div>
+    <div class="chiprow" id="url-row" hidden>
+      <div class="chip" id="url-chip"></div>
+      <button class="small" id="url-copy">Salin</button>
+    </div>
+    <button class="primary wide" id="power">Nyalakan server</button>
+  </section>
+
+  <section id="s-token">
+    <h2>1 · Token</h2>
+    <p class="sub">Kunci rahasia supaya hanya Claude lu yang bisa masuk. Jangan dibagikan.</p>
+    <div class="banner" id="stale" hidden>
+      Token baru belum dipakai server yang sedang jalan.
+      <div><button class="small primary" id="restart">Mulai ulang server</button></div>
+    </div>
+    <div class="chip mute" id="token-chip">••••••••••••••••••••</div>
+    <div class="row mt10">
+      <button class="small" id="tok-show">Tampilkan</button>
+      <button class="small" id="tok-copy">Salin</button>
+      <button class="small danger" id="tok-new">Buat baru</button>
+    </div>
+  </section>
+
+  <section id="s-tunnel">
+    <h2>2 · Tunnel</h2>
+    <p class="sub">Claude mengakses perangkat lu lewat alamat publik. Pilih cara membuatnya.</p>
+    <div class="seg" id="seg">
+      <button data-p="cloudflare">Cloudflare</button>
+      <button data-p="ngrok">ngrok</button>
+    </div>
+
+    <div id="pn-cloudflare">
+      <p class="note">Tanpa akun, langsung jalan. Alamat berubah setiap server dinyalakan ulang, jadi konektor di Claude perlu diperbarui.</p>
+      <p class="note" id="cf-state"></p>
+      <div id="cf-install" hidden>
+        <div class="chiprow"><div class="chip" id="cf-cmd"></div><button class="small" id="cf-copy">Salin</button></div>
+      </div>
+    </div>
+
+    <div id="pn-ngrok" hidden>
+      <p class="note">Alamat tetap, cukup diisi sekali di Claude. Perlu akun ngrok gratis.</p>
+      <p class="note" id="ng-state"></p>
+      <div id="ng-missing" hidden class="note">Pasang ngrok dulu dari ngrok.com/download.</div>
+      <label class="label" for="ng-token">Authtoken (dashboard.ngrok.com, menu Your Authtoken)</label>
+      <input id="ng-token" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Tempel authtoken">
+      <label class="label" for="ng-domain">Domain tetap (menu Domains di dashboard)</label>
+      <input id="ng-domain" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="nama-lu.ngrok-free.dev">
+      <div class="mt12"><button class="small primary" id="ng-save">Simpan</button></div>
+    </div>
+  </section>
+
+  <section id="s-guide">
+    <h2>3 · Pasang di Claude</h2>
+    <p class="sub">Dilakukan sekali. Tombol Salin mengisi clipboard.</p>
+    <ol class="steps">
+      <li>Buka app Claude, masuk ke pengaturan Konektor, lalu pilih tambah konektor kustom.</li>
+      <li>Isi alamat server:
+        <div class="chiprow"><div class="chip mute" id="g-url">Nyalakan server dulu</div><button class="small" id="g-url-copy">Salin</button></div>
+      </li>
+      <li>Tambahkan header dengan nama ini:
+        <div class="chiprow"><div class="chip">x-api-key</div><button class="small" id="g-name-copy">Salin</button></div>
+      </li>
+      <li>Isi nilai header dengan token lu:
+        <div class="chiprow"><div class="chip mute">Token dari langkah 1</div><button class="small" id="g-tok-copy">Salin</button></div>
+      </li>
+      <li>Simpan, lalu aktifkan konektornya di percakapan.</li>
+    </ol>
+  </section>
+
+  <section id="s-log">
+    <details>
+      <summary>Log server</summary>
+      <pre class="chip" id="log">belum ada log</pre>
+    </details>
+  </section>
+</main>
+<div id="toast"></div>
+
+<script nonce="__NONCE__">
+(function(){
+  var $ = function(s){ return document.querySelector(s); };
+  var S = null, sel = null, tokenCache = null, tokenShown = false, busy = false, toastTimer = null;
+
+  function toast(msg){
+    var t = $('#toast'); t.textContent = msg; t.classList.add('show');
+    clearTimeout(toastTimer); toastTimer = setTimeout(function(){ t.classList.remove('show'); }, 2600);
+  }
+
+  function api(path, body){
+    var opt = {credentials:'same-origin'};
+    if (body !== undefined){
+      opt.method = 'POST';
+      opt.headers = {'Content-Type':'application/json','X-Panel':'1'};
+      opt.body = JSON.stringify(body);
+    }
+    return fetch(path, opt).then(function(r){
+      return r.json().catch(function(){ return {}; }).then(function(d){
+        if (r.status === 401 || r.status === 403){ $('#expired').hidden = false; }
+        return {ok:r.ok, data:d};
+      });
+    });
+  }
+
+  function copy(text, okMsg){
+    function fallback(){
+      var ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta);
+      ta.select(); var ok = false; try { ok = document.execCommand('copy'); } catch(e){}
+      document.body.removeChild(ta); toast(ok ? okMsg : 'Gagal menyalin');
+    }
+    if (navigator.clipboard && window.isSecureContext){
+      navigator.clipboard.writeText(text).then(function(){ toast(okMsg); }, fallback);
+    } else { fallback(); }
+  }
+
+  function ensureToken(){
+    if (tokenCache) return Promise.resolve(tokenCache);
+    return api('/api/token').then(function(r){ tokenCache = r.data.token || null; return tokenCache; });
+  }
+
+  function defaultProvider(){
+    if (S.ngrok.installed && S.ngrok.authtoken && S.ngrok.domain) return 'ngrok';
+    return 'cloudflare';
+  }
+
+  function render(){
+    if (!S) return;
+    if (S.running && S.provider) sel = S.provider;
+    if (!sel) sel = localStorage.getItem('provider') || defaultProvider();
+
+    // status
+    var dot = $('#dot'), title = $('#st-title'), sub = $('#st-sub');
+    dot.className = 'dot';
+    if (S.running && S.url){ dot.classList.add('ok'); title.textContent = 'Server aktif'; sub.textContent = 'Siap dihubungkan dari Claude lewat ' + (S.provider === 'ngrok' ? 'ngrok' : 'Cloudflare') + '.'; }
+    else if (S.running && S.starting){ dot.classList.add('warn'); title.textContent = 'Menyalakan tunnel...'; sub.textContent = 'Biasanya beberapa detik.'; }
+    else if (S.running && !S.provider){ dot.classList.add('warn'); title.textContent = 'Aktif, hanya lokal'; sub.textContent = 'Tanpa tunnel, Claude belum bisa menjangkau server ini.'; }
+    else if (S.running){ dot.classList.add('bad'); title.textContent = 'Tunnel belum tersambung'; sub.textContent = 'Lihat log di bawah, atau matikan lalu nyalakan lagi.'; }
+    else if (S.port_busy){ dot.classList.add('bad'); title.textContent = 'Port ' + S.port + ' dipakai proses lain'; sub.textContent = 'Mungkin server termux-mcp yang dijalankan dari terminal. Matikan dulu, lalu nyalakan dari sini.'; }
+    else { title.textContent = 'Server mati'; sub.textContent = 'Pilih tunnel di bawah, lalu nyalakan.'; }
+
+    $('#url-row').hidden = !S.url;
+    $('#url-chip').textContent = S.url || '';
+    var power = $('#power');
+    power.textContent = S.running ? 'Matikan server' : 'Nyalakan server';
+    power.classList.toggle('primary', !S.running);
+    power.disabled = busy || (!S.running && S.port_busy);
+
+    // token
+    $('#stale').hidden = !S.token_stale;
+    var chip = $('#token-chip');
+    chip.textContent = tokenShown && tokenCache ? tokenCache : '••••••••••••••••••••';
+    chip.classList.toggle('mute', !tokenShown);
+    $('#tok-show').textContent = tokenShown ? 'Sembunyikan' : 'Tampilkan';
+
+    // tunnel
+    var seg = $('#seg'); seg.classList.toggle('locked', S.running);
+    Array.prototype.forEach.call(seg.querySelectorAll('button'), function(b){ b.classList.toggle('on', b.dataset.p === sel); });
+    $('#pn-cloudflare').hidden = sel !== 'cloudflare';
+    $('#pn-ngrok').hidden = sel !== 'ngrok';
+
+    var cfs = $('#cf-state');
+    cfs.textContent = S.cloudflare.installed ? 'cloudflared terpasang.' : 'cloudflared belum terpasang. Jalankan perintah ini di terminal, lalu muat ulang halaman:';
+    cfs.className = 'note ' + (S.cloudflare.installed ? 'ok' : '');
+    $('#cf-install').hidden = S.cloudflare.installed;
+    $('#cf-cmd').textContent = S.install.cloudflare;
+
+    var ngs = $('#ng-state'), parts = [];
+    $('#ng-missing').hidden = S.ngrok.installed;
+    if (S.ngrok.installed){
+      parts.push(S.ngrok.authtoken ? 'authtoken tersimpan' : 'authtoken belum diisi');
+      parts.push(S.ngrok.domain ? 'domain: ' + S.ngrok.domain : 'domain belum diisi (alamat acak)');
+    }
+    ngs.textContent = parts.join(' · ');
+    ngs.className = 'note ' + (S.ngrok.installed && S.ngrok.authtoken && S.ngrok.domain ? 'ok' : '');
+    $('#ng-save').disabled = busy || !S.ngrok.installed;
+
+    // panduan
+    var g = $('#g-url');
+    g.textContent = S.url || 'Nyalakan server dulu';
+    g.classList.toggle('mute', !S.url);
+
+    // log
+    $('#log').textContent = S.log || 'belum ada log';
+  }
+
+  function refresh(){
+    return api('/api/status').then(function(r){ if (r.ok){ S = r.data; render(); } });
+  }
+
+  function act(fn){
+    if (busy) return Promise.resolve();
+    busy = true; render();
+    return fn().then(function(){ return refresh(); }, function(){ toast('Gagal menghubungi panel'); })
+      .then(function(){ busy = false; render(); });
+  }
+
+  function post(path, body, okMsg){
+    return api(path, body).then(function(r){
+      if (!r.ok){ toast(r.data.error || 'Gagal'); return false; }
+      S = r.data; if (okMsg) toast(okMsg); return true;
+    });
+  }
+
+  $('#power').onclick = function(){
+    if (S.running){ act(function(){ return post('/api/stop', {}, 'Server dimatikan'); }); }
+    else { act(function(){ return post('/api/start', {tunnel: sel}, 'Server dinyalakan'); }); }
+  };
+
+  $('#restart').onclick = function(){
+    var p = S.provider || sel;
+    act(function(){ return post('/api/stop', {}).then(function(ok){ return ok && post('/api/start', {tunnel: p}, 'Server dimulai ulang'); }); });
+  };
+
+  $('#seg').onclick = function(e){
+    var b = e.target.closest('button'); if (!b || S.running) return;
+    sel = b.dataset.p; localStorage.setItem('provider', sel); render();
+  };
+
+  $('#url-copy').onclick = function(){ if (S && S.url) copy(S.url, 'Alamat disalin'); };
+  $('#g-url-copy').onclick = function(){ if (S && S.url) copy(S.url, 'Alamat disalin'); else toast('Nyalakan server dulu'); };
+  $('#g-name-copy').onclick = function(){ copy('x-api-key', 'Nama header disalin'); };
+  $('#cf-copy').onclick = function(){ if (S) copy(S.install.cloudflare, 'Perintah disalin'); };
+
+  $('#tok-show').onclick = function(){
+    if (tokenShown){ tokenShown = false; render(); return; }
+    ensureToken().then(function(){ tokenShown = true; render(); });
+  };
+  function copyToken(){ ensureToken().then(function(t){ if (t) copy(t, 'Token disalin'); }); }
+  $('#tok-copy').onclick = copyToken;
+  $('#g-tok-copy').onclick = copyToken;
+
+  $('#tok-new').onclick = function(){
+    if (!window.confirm('Buat token baru? Token lama langsung tidak berlaku dan konektor di Claude harus diisi ulang.')) return;
+    act(function(){
+      return post('/api/token/new', {}, 'Token baru dibuat').then(function(ok){
+        if (ok){ tokenCache = null; return ensureToken(); }
+      });
+    });
+  };
+
+  $('#ng-save').onclick = function(){
+    var a = $('#ng-token').value.trim(), d = $('#ng-domain').value.trim();
+    act(function(){
+      return post('/api/ngrok', {authtoken: a, domain: d}, 'Tersimpan').then(function(ok){
+        if (ok){ $('#ng-token').value = ''; $('#ng-domain').value = ''; }
+      });
+    });
+  };
+
+  refresh();
+  setInterval(function(){ if (!document.hidden && !busy) refresh(); }, 2500);
+  document.addEventListener('visibilitychange', function(){ if (!document.hidden) refresh(); });
+})();
+</script>
+</body>
+</html>

@@ -15,6 +15,7 @@ import platform
 import re
 import secrets
 import shutil
+import textwrap
 import signal
 import socket
 import subprocess
@@ -24,7 +25,7 @@ import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-from . import config, state
+from . import __version__, config, state
 from . import tunnel as tn
 
 PAGE_FILE = Path(__file__).with_name("ui.html")
@@ -69,6 +70,7 @@ class Panel:
         self.lock = threading.RLock()
         self._tools_cache = (0.0, {})
         self._fails: list[float] = []
+        self.notify = lambda msg: None  # diisi run() untuk mencetak aktivitas ke terminal
 
     # ---- sesi ----
     def locked_out(self) -> bool:
@@ -301,9 +303,11 @@ def make_handler(panel: Panel, ui_port: int):
                 if m:
                     sid = panel.try_code(m.group(1))
                     if not sid:
+                        panel.notify("!Percobaan masuk dengan kode salah")
                         code = 429 if panel.locked_out() else 403
                         return self._send(code, "Kode salah atau kedaluwarsa. Jalankan ulang: termux-mcp ui".encode(),
                                           "text/plain; charset=utf-8")
+                    panel.notify("Browser tersambung")
                     return self._send(302, b"", "text/plain", {
                         "Location": "/", "Set-Cookie": f"{COOKIE}={sid}; HttpOnly; SameSite=Strict; Path=/"})
                 if not panel.valid_session(self._session()):
@@ -327,6 +331,8 @@ def make_handler(panel: Panel, ui_port: int):
             body = self._body()
             if body is None:
                 return
+            done = {"/api/start": "Server dinyalakan", "/api/stop": "Server dimatikan",
+                    "/api/token/new": "Token baru dibuat", "/api/ngrok": "Pengaturan ngrok disimpan"}
             try:
                 if self.path == "/api/start":
                     panel.start(str(body.get("tunnel", "")))
@@ -339,13 +345,101 @@ def make_handler(panel: Panel, ui_port: int):
                 else:
                     return self._json(404, {"error": "tidak ditemukan"})
             except PanelError as e:
+                panel.notify(f"!{e}")
                 return self._json(400, {"error": str(e)})
+            panel.notify(done[self.path])
             self._json(200, panel.status())
 
     return Handler
 
 
-def run(port: int = 8787, mcp_port: int = 8000):
+# ---- tampilan terminal ----
+
+def supports_color(stream=None) -> bool:
+    stream = stream or sys.stdout
+    if os.environ.get("NO_COLOR"):
+        return False
+    if os.environ.get("FORCE_COLOR"):
+        return True
+    return stream.isatty() and os.environ.get("TERM", "") != "dumb"
+
+
+class Style:
+    """Pewarnaan ANSI sederhana. Mati otomatis kalau output bukan terminal atau NO_COLOR diatur."""
+
+    def __init__(self, enabled: bool):
+        self.on = enabled
+
+    def _w(self, code: str, text: str) -> str:
+        return f"\033[{code}m{text}\033[0m" if self.on else text
+
+    def bold(self, t): return self._w("1", t)
+    def dim(self, t): return self._w("90", t)
+    def green(self, t): return self._w("92", t)
+    def red(self, t): return self._w("91", t)
+    def amber(self, t): return self._w("93", t)
+
+    def link(self, url: str, text: str | None = None) -> str:
+        """Hijau + garis bawah; di terminal yang mendukung OSC 8, teksnya juga bisa diketuk."""
+        text = text or url
+        if not self.on:
+            return text
+        styled = f"\033[4;92m{text}\033[0m"
+        return f"\033]8;;{url}\033\\{styled}\033]8;;\033\\"
+
+
+def open_in_browser(url: str) -> bool:
+    """Coba buka URL di browser perangkat. Urutan: Termux:API, intent Android, xdg-open (hanya kalau ada layar).
+    Sengaja tidak memakai modul webbrowser: tanpa layar ia bisa membuka browser teks yang mengambil alih terminal."""
+    cmds = []
+    for exe in (shutil.which("termux-open-url"), "/data/data/com.termux/files/usr/bin/termux-open-url"):
+        if exe and os.access(exe, os.X_OK):
+            cmds.append([exe, url])
+    am = shutil.which("am") or "/system/bin/am"
+    if os.access(am, os.X_OK):
+        cmds.append([am, "start", "--user", "0", "-a", "android.intent.action.VIEW", "-d", url])
+    if (os.environ.get("DISPLAY") or os.environ.get("WAYLAND_DISPLAY")) and shutil.which("xdg-open"):
+        cmds.append(["xdg-open", url])
+    for cmd in cmds:
+        try:
+            r = subprocess.run(cmd, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=8)
+        except (OSError, subprocess.TimeoutExpired):
+            continue
+        if r.returncode == 0:
+            return True
+    return False
+
+
+def render_banner(st: Style, link: str, port: int, opened: bool, copied: bool, width: int = 60) -> str:
+    ind = "  "
+    wrap = lambda text: "\n".join(textwrap.wrap(text, max(20, width - 4), initial_indent=ind, subsequent_indent=ind))
+    dimwrap = lambda text: "\n".join(st.dim(l) for l in wrap(text).split("\n"))
+    out = ["",
+           f"{ind}{st.bold('termux-mcp')} {st.dim('v' + __version__)}",
+           f"{ind}{st.dim('Panel setup')}",
+           "",
+           f"{ind}{st.green('●')} Panel siap {st.dim('· 127.0.0.1:' + str(port))}",
+           "",
+           f"{ind}{st.dim('Buka di browser')}",
+           f"{ind}{st.link(link)}",
+           ""]
+    if opened:
+        out.append(f"{ind}{st.green('✓')} Dibuka otomatis di browser")
+    if copied:
+        out.append(f"{ind}{st.green('✓')} Link disalin ke clipboard")
+    if not opened:
+        out.append(wrap("Ketuk link di atas, atau salin lalu tempel di browser HP." if not copied
+                        else "Tempel link di browser HP, atau ketuk link di atas."))
+        out[-1] = out[-1].replace(ind, ind + st.amber("›") + " ", 1) if st.on else out[-1].replace(ind, ind + "› ", 1)
+    out += ["",
+            dimwrap("Link berisi kode rahasia dan hanya berlaku selama panel ini jalan."),
+            dimwrap("Ctrl+C menutup panel. Server MCP yang sudah menyala tetap jalan."),
+            "",
+            f"{ind}{st.bold('Aktivitas')}"]
+    return "\n".join(out)
+
+
+def run(port: int = 8787, mcp_port: int = 8000, open_browser: bool = True):
     from .cli import _copy_clipboard
 
     if port == mcp_port:
@@ -358,18 +452,24 @@ def run(port: int = 8787, mcp_port: int = 8000):
         print(f"Port {port} tidak bisa dipakai ({e}). Coba: termux-mcp ui --port 8788", file=sys.stderr)
         sys.exit(1)
     httpd.daemon_threads = True
+
+    st = Style(supports_color())
     link = f"http://127.0.0.1:{port}/?k={panel.code}"
     copied = _copy_clipboard(link)
-    print("\n" + "=" * 54)
-    print("Panel setup siap. Buka link ini di browser HP lu:")
-    print(f"  {link}" + ("   (sudah disalin)" if copied else ""))
-    print("Link berisi kode rahasia dan hanya berlaku selama panel ini jalan.")
-    print("Tekan Ctrl+C untuk menutup panel. Server MCP yang sudah dinyalakan tetap jalan.")
-    print("=" * 54 + "\n", flush=True)
+    opened = open_in_browser(link) if open_browser else False
+    width = max(30, min(shutil.get_terminal_size((60, 20)).columns, 78))
+    print(render_banner(st, link, port, opened, copied, width), flush=True)
+
+    def notify(msg: str):
+        warn = msg.startswith("!")
+        mark = st.red("!") if warn else st.green("✓")
+        print(f"  {st.dim(time.strftime('%H:%M'))}  {mark} {msg.lstrip('!')}", flush=True)
+
+    panel.notify = notify
     try:
         httpd.serve_forever()
     except KeyboardInterrupt:
         pass
     finally:
         httpd.server_close()
-        print("Panel ditutup.")
+        print(f"\n  {st.dim('Panel ditutup.')}\n")

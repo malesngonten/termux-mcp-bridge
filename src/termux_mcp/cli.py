@@ -93,7 +93,7 @@ def cmd_serve(a):
 
 def cmd_ui(a):
     from . import webui
-    webui.run(port=a.port, mcp_port=a.mcp_port)
+    webui.run(port=a.port, mcp_port=a.mcp_port, open_browser=not a.no_open)
 
 
 def cmd_token(a):
@@ -194,6 +194,7 @@ def main():
     u = sub.add_parser("ui", help="buka panel setup di browser (hanya bisa diakses dari perangkat ini)")
     u.add_argument("--port", type=int, default=8787, help="port panel (default 8787; harus beda dari port server MCP)")
     u.add_argument("--mcp-port", type=int, default=8000, help="port server MCP yang dikelola panel")
+    u.add_argument("--no-open", action="store_true", help="jangan coba membuka browser otomatis")
     u.set_defaults(fn=cmd_ui)
 
     t = sub.add_parser("token", help="tampilkan token (dibuat otomatis kalau belum ada)")

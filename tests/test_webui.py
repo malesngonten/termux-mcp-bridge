@@ -109,6 +109,21 @@ class HttpTests(PanelBase):
         r, _ = self.req("GET", f"/?k={self.panel.code}")  # bahkan kode benar ditolak selama terkunci
         self.assertEqual(r.status, 429)
 
+    def test_activity_notifications(self):
+        events = []
+        self.panel.notify = events.append
+        self.req("GET", "/?k=salah")
+        cookie = self.login()
+        self.post("/api/stop", {}, cookie)
+        self.post("/api/token/new", {}, cookie)
+        self.post("/api/start", {"tunnel": "aneh"}, cookie)
+        self.assertEqual(events[0], "!Percobaan masuk dengan kode salah")
+        self.assertIn("Browser tersambung", events)
+        self.assertIn("Server dimatikan", events)
+        self.assertIn("Token baru dibuat", events)
+        self.assertTrue(any(e.startswith("!") and "tidak dikenal" in e for e in events))
+        self.assertFalse(any(self.panel.get_token() in e or self.panel.code in e for e in events))
+
     def test_host_header_checked(self):
         cookie = self.login()
         r, _ = self.req("GET", "/api/status", headers=cookie, host="evil.example.com")
@@ -264,6 +279,41 @@ class EndToEndTests(PanelBase):
         self.assertIsNone(panel.status()["url"])
         panel.stop()
         self.assertTrue(wait_for(lambda: not panel.status()["running"]))
+
+
+class TerminalUiTests(PanelBase):
+    LINK = "http://127.0.0.1:8787/?k=abc123"
+
+    def test_plain_banner_has_no_escape_codes(self):
+        text = webui.render_banner(webui.Style(False), self.LINK, 8787, opened=False, copied=False, width=45)
+        self.assertNotIn("\033", text)
+        self.assertIn(self.LINK, text)
+        self.assertLessEqual(max(len(l) for l in text.splitlines()), 45)
+
+    def test_color_banner_has_green_link_and_osc8(self):
+        text = webui.render_banner(webui.Style(True), self.LINK, 8787, opened=True, copied=False, width=45)
+        self.assertIn("\033[4;92m" + self.LINK, text)
+        self.assertIn("\033]8;;" + self.LINK, text)
+        self.assertIn("Dibuka otomatis", text)
+
+    def test_banner_never_contains_box_borders(self):
+        text = webui.render_banner(webui.Style(False), self.LINK, 8787, opened=False, copied=True, width=45)
+        self.assertNotRegex(text, r"[=─━│┃┌┐└┘╭╮╰╯]{3,}")
+
+    def test_no_color_env_disables_color(self):
+        with mock.patch.dict(os.environ, {"NO_COLOR": "1"}):
+            self.assertFalse(webui.supports_color())
+
+    def test_open_in_browser_uses_termux_open_url(self):
+        out = Path(self._tmp.name) / "opened.txt"
+        self.stub("termux-open-url", f'echo "$1" > {out}\n')
+        self.assertTrue(webui.open_in_browser(self.LINK))
+        self.assertEqual(out.read_text().strip(), self.LINK)
+
+    def test_open_in_browser_failure_returns_false(self):
+        self.stub("termux-open-url", "exit 1\n")
+        with mock.patch("termux_mcp.webui.os.access", side_effect=lambda p, m: str(p).startswith(str(self.bin))):
+            self.assertFalse(webui.open_in_browser(self.LINK))
 
 
 if __name__ == "__main__":

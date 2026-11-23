@@ -46,11 +46,17 @@ Cara termudah untuk pemula: semua langkah (token, tunnel, nyalakan server, pandu
 termux-mcp ui
 ```
 
-Buka link yang dicetak di terminal (berisi kode rahasia sekali jalan) di browser HP. Di halaman itu:
+Buka link yang dicetak di terminal (berisi kode rahasia) di browser HP. Panel berbentuk onboarding enam langkah:
 
-1. Salin atau buat token.
-2. Pilih tunnel: **Cloudflare** (tanpa akun, alamat berubah tiap start) atau **ngrok** (alamat tetap, perlu akun gratis).
-3. Tekan **Nyalakan server**, lalu ikuti panduan mengisi konektor di app Claude (nilai siap salin).
+1. Selamat datang.
+2. **Token**: lihat, salin, atau buat baru.
+3. **Tunnel**: Cloudflare (tanpa akun, alamat berubah tiap start) atau ngrok (alamat tetap, perlu akun gratis).
+4. **Nyalakan server** dengan tombol power; status, alamat publik, dan log tampil di situ.
+5. **Pasang di Claude**: alamat, nama header, dan token siap salin.
+6. **Uji koneksi**: mengirim handshake MCP ke server lokal lalu ke jalur publik, dan menjelaskan di mana masalahnya kalau gagal.
+
+Titik di bawah layar bisa diketuk untuk lompat antar langkah. Kalau sudah pernah selesai, panel langsung membuka langkah yang relevan.
+Ilustrasi globe dihasilkan dari data Natural Earth 110m (domain publik) lewat `tools/gen_globe.py`.
 
 Semua yang bisa dilakukan panel tetap bisa lewat perintah (`serve`, `token`, `tunnel setup`). Panel memanggil logika yang sama.
 

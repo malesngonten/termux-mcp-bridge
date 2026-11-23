@@ -5,12 +5,15 @@ Jalankan: PYTHONPATH=src python -m unittest discover -s tests -v
 import http.client
 import json
 import os
+import re
+import shutil
 import socket
+import subprocess
 import tempfile
 import threading
 import time
 import unittest
-from http.server import ThreadingHTTPServer
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from unittest import mock
 
@@ -314,6 +317,136 @@ class TerminalUiTests(PanelBase):
         self.stub("termux-open-url", "exit 1\n")
         with mock.patch("termux_mcp.webui.os.access", side_effect=lambda p, m: str(p).startswith(str(self.bin))):
             self.assertFalse(webui.open_in_browser(self.LINK))
+
+
+class StubMcp:
+    """Server MCP palsu: membalas 200 hanya kalau header x-api-key sesuai token."""
+
+    def __init__(self, token: str):
+        outer = self
+
+        class H(BaseHTTPRequestHandler):
+            def log_message(self, *a):
+                pass
+
+            def do_POST(self):
+                n = int(self.headers.get("Content-Length", "0"))
+                outer.last_body = json.loads(self.rfile.read(n) or b"{}")
+                ok = self.path == "/mcp" and self.headers.get("x-api-key") == token
+                self.send_response(200 if ok else 401)
+                self.send_header("Content-Type", "application/json")
+                self.send_header("Content-Length", "2")
+                self.end_headers()
+                self.wfile.write(b"{}")
+
+        self.last_body = None
+        self.httpd = ThreadingHTTPServer(("127.0.0.1", 0), H)
+        self.port = self.httpd.server_address[1]
+        threading.Thread(target=self.httpd.serve_forever, daemon=True).start()
+
+    def close(self):
+        self.httpd.shutdown()
+        self.httpd.server_close()
+
+
+class ConnectionTests(PanelBase):
+    def setUp(self):
+        super().setUp()
+        self.panel = webui.Panel(mcp_port=free_port())
+        self.stub = StubMcp(self.panel.get_token())
+        self.addCleanup(self.stub.close)
+
+    def test_probe_ok_and_handshake_shape(self):
+        r = webui.Panel._probe(f"http://127.0.0.1:{self.stub.port}/mcp", self.panel.get_token(), 3)
+        self.assertTrue(r["ok"])
+        self.assertEqual(self.stub.last_body["method"], "initialize")
+        self.assertNotIn(self.panel.get_token(), json.dumps(r))
+
+    def test_probe_wrong_token_explains(self):
+        r = webui.Panel._probe(f"http://127.0.0.1:{self.stub.port}/mcp", "salah", 3)
+        self.assertFalse(r["ok"])
+        self.assertEqual(r["status"], 401)
+        self.assertIn("token", r["detail"])
+
+    def test_probe_connection_refused(self):
+        r = webui.Panel._probe(f"http://127.0.0.1:{free_port()}/mcp", "x", 3)
+        self.assertFalse(r["ok"])
+        self.assertIn("tidak bisa terhubung", r["detail"])
+
+    def test_test_connection_requires_running_server(self):
+        with self.assertRaises(webui.PanelError):
+            self.panel.test_connection()
+
+    def test_test_connection_ok_local_and_public(self):
+        state.write(pid=os.getpid(), port=self.stub.port, tunnel="cloudflare", url=f"http://127.0.0.1:{self.stub.port}")
+        res = self.panel.test_connection()
+        self.assertTrue(res["ok"], res)
+        self.assertTrue(res["local"]["ok"] and res["public"]["ok"])
+        self.assertIn("aman", res["message"])
+
+    def test_test_connection_without_tunnel(self):
+        state.write(pid=os.getpid(), port=self.stub.port, tunnel=None, url=None)
+        res = self.panel.test_connection()
+        self.assertFalse(res["ok"])
+        self.assertTrue(res["public"]["skipped"])
+        self.assertIn("tunnel", res["message"])
+
+    def test_test_connection_public_down(self):
+        state.write(pid=os.getpid(), port=self.stub.port, tunnel="ngrok", url=f"http://127.0.0.1:{free_port()}")
+        res = self.panel.test_connection()
+        self.assertFalse(res["ok"])
+        self.assertTrue(res["local"]["ok"])
+        self.assertIn("jalur publik gagal", res["message"])
+
+
+class PageTests(unittest.TestCase):
+    html = webui.PAGE_FILE.read_text()
+
+    def script(self):
+        return re.search(r"<script[^>]*>(.*?)</script>", self.html, re.S).group(1)
+
+    def test_every_id_used_by_script_exists(self):
+        ids = set(re.findall(r'\bid="([^"]+)"', self.html))
+        used = set(re.findall(r"\$\$?\('#([A-Za-z0-9_-]+)", self.script()))
+        dynamic = {"power", "tester"}  # dibuat oleh JS (powerHTML)
+        self.assertEqual(used - ids - dynamic, set())
+
+    def test_every_icon_reference_exists(self):
+        ids = set(re.findall(r'\bid="(i-[a-z]+)"', self.html))
+        used = set(re.findall(r'#(i-[a-z]+)', self.html)) | {f"i-{n}" for n in ("key", "route", "plug", "power", "pulse", "check", "x")}
+        self.assertEqual(used - ids, set())
+
+    def test_globe_data_present(self):
+        for pid in ("land-path", "grat-path"):
+            d = re.search(r'id="%s"[^>]*?\sd="([^"]*)"' % pid, self.html).group(1)
+            self.assertGreater(len(d), 1000, pid)
+
+    def test_script_is_valid_javascript(self):
+        node = shutil.which("node")
+        if not node:
+            self.skipTest("node tidak ada")
+        with tempfile.TemporaryDirectory() as d:
+            f = Path(d) / "ui.js"
+            f.write_text(self.script())
+            r = subprocess.run([node, "--check", str(f)], capture_output=True, text=True, stdin=subprocess.DEVNULL)
+            self.assertEqual(r.returncode, 0, r.stderr)
+
+    def test_build_runs_before_handlers_that_need_dynamic_buttons(self):
+        js = self.script()
+        self.assertLess(js.index("build();"), js.index("$('#power').onclick"))
+
+    def test_ui_smoke_with_jsdom(self):
+        node = shutil.which("node")
+        jsdom = os.environ.get("JSDOM_PATH")
+        if not node or not jsdom:
+            self.skipTest("butuh node dan JSDOM_PATH (npm i jsdom)")
+        smoke = Path(__file__).resolve().parent.parent / "tools" / "ui_smoke.js"
+        r = subprocess.run([node, str(smoke)], capture_output=True, text=True, stdin=subprocess.DEVNULL, timeout=90)
+        self.assertEqual(r.returncode, 0, r.stdout[-1500:] + r.stderr[-500:])
+
+    def test_no_external_resources(self):
+        self.assertNotRegex(self.html, r'(src|href)="https?://')
+        self.assertNotIn("@import", self.html)
 
 
 if __name__ == "__main__":

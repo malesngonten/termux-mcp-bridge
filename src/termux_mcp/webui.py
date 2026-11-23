@@ -22,6 +22,8 @@ import subprocess
 import sys
 import threading
 import time
+import urllib.error
+import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
@@ -199,6 +201,54 @@ class Panel:
     def get_token(self) -> str:
         return config.load_token()
 
+    # ---- uji koneksi ----
+    @staticmethod
+    def _probe(url: str, token: str, timeout: float) -> dict:
+        """Kirim handshake MCP `initialize` ke url dan laporkan hasilnya (tanpa pernah menyertakan token di hasil)."""
+        body = json.dumps({"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {
+            "protocolVersion": "2025-03-26", "capabilities": {},
+            "clientInfo": {"name": "termux-mcp-panel", "version": __version__}}}).encode()
+        req = urllib.request.Request(url, data=body, method="POST", headers={
+            "Content-Type": "application/json", "Accept": "application/json, text/event-stream",
+            "x-api-key": token, "User-Agent": f"termux-mcp-panel/{__version__}", "ngrok-skip-browser-warning": "1"})
+        t0 = time.time()
+        try:
+            with urllib.request.urlopen(req, timeout=timeout) as r:
+                ms = int((time.time() - t0) * 1000)
+                return {"ok": 200 <= r.status < 300, "ms": ms, "status": r.status,
+                        "detail": "" if 200 <= r.status < 300 else f"balasan tak terduga (kode {r.status})"}
+        except urllib.error.HTTPError as e:
+            hints = {401: "token ditolak. Server memakai token lain; mulai ulang server atau samakan token.",
+                     403: "akses ditolak (kode 403).", 404: "alamat tidak ditemukan. Tunnel mungkin belum aktif.",
+                     429: "terlalu banyak percobaan, coba lagi sebentar lagi."}
+            detail = hints.get(e.code) or (f"tunnel tidak bisa menjangkau server (kode {e.code})" if e.code >= 500
+                                           else f"ditolak (kode {e.code})")
+            return {"ok": False, "ms": None, "status": e.code, "detail": detail}
+        except urllib.error.URLError as e:
+            return {"ok": False, "ms": None, "status": None, "detail": f"tidak bisa terhubung ({e.reason})"}
+        except (OSError, ValueError) as e:
+            return {"ok": False, "ms": None, "status": None, "detail": f"tidak bisa terhubung ({e})"}
+
+    def test_connection(self) -> dict:
+        st = state.read()
+        if not st:
+            raise PanelError("server belum menyala")
+        token = config.load_token()
+        local = self._probe(f"http://127.0.0.1:{st['port']}/mcp", token, 6)
+        if st.get("url"):
+            public = self._probe(st["url"].rstrip("/") + "/mcp", token, 15)
+        else:
+            public = {"ok": False, "skipped": True, "ms": None, "status": None, "detail": "tidak ada tunnel"}
+        if local["ok"] and public["ok"]:
+            message = f"Koneksi aman, membalas dalam {public['ms']} ms."
+        elif not local["ok"]:
+            message = "Server lokal bermasalah: " + local["detail"]
+        elif public.get("skipped"):
+            message = "Server berjalan, tapi tanpa tunnel Claude belum bisa menjangkaunya."
+        else:
+            message = "Server lokal normal, tapi jalur publik gagal: " + public["detail"]
+        return {"ok": local["ok"] and public["ok"], "message": message, "local": local, "public": public}
+
     def new_token(self) -> str:
         with self.lock:
             token = config.new_token()
@@ -331,6 +381,14 @@ def make_handler(panel: Panel, ui_port: int):
             body = self._body()
             if body is None:
                 return
+            if self.path == "/api/test":
+                try:
+                    res = panel.test_connection()
+                except PanelError as e:
+                    panel.notify(f"!{e}")
+                    return self._json(400, {"error": str(e)})
+                panel.notify("Uji koneksi berhasil" if res["ok"] else "!Uji koneksi gagal: " + res["message"])
+                return self._json(200, res)
             done = {"/api/start": "Server dinyalakan", "/api/stop": "Server dimatikan",
                     "/api/token/new": "Token baru dibuat", "/api/ngrok": "Pengaturan ngrok disimpan"}
             try:

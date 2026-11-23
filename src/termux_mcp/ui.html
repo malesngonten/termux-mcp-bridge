@@ -2,224 +2,387 @@
 <html lang="id">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="color-scheme" content="light dark">
-<title>termux-mcp</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#04243f">
+<title>TermuxMCP</title>
 <style nonce="__NONCE__">
 :root{
-  --bg:#f3f3f1; --card:#ffffff; --tone:#f0f0ee; --tone2:#e6e6e3;
-  --ink:#141414; --mute:#7a7a76; --on-ink:#ffffff;
-  --ok:#1f9d6b; --warn:#d99a14; --off:#b4b4af; --bad:#d6453d;
-  --shadow:0 1px 2px rgba(0,0,0,.04),0 10px 28px rgba(0,0,0,.06);
-}
-@media (prefers-color-scheme: dark){
-  :root{
-    --bg:#0f0f0f; --card:#1a1a1a; --tone:#242424; --tone2:#2e2e2e;
-    --ink:#f2f2f0; --mute:#8d8d89; --on-ink:#111111;
-    --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 28px rgba(0,0,0,.35);
-  }
+  --ink:#ffffff; --mute:#9fb4cf; --faint:#6f89aa;
+  --cyan:#38e1ff; --blue:#1f8bff; --blue2:#1f6bff;
+  --glass:rgba(255,255,255,.065); --glass-hi:rgba(255,255,255,.12);
+  --ok:#3ee6b4; --bad:#ff7a7a; --warn:#ffc65a;
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-html{background:var(--bg)}
+html{background:#021626}
 body{
-  margin:0;padding:28px 16px 64px;color:var(--ink);background:var(--bg);
-  font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  margin:0;color:var(--ink);min-height:100vh;min-height:100dvh;
+  font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",sans-serif;
+  -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;
+  background:
+    radial-gradient(110% 50% at 50% 34%,rgba(31,139,255,.22),rgba(31,139,255,0) 70%),
+    linear-gradient(180deg,#06395f 0%,#04243f 40%,#021626 100%);
+  background-attachment:fixed;
 }
-main{max-width:520px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
-header{padding:4px 6px 8px}
-h1{margin:0;font-size:22px;font-weight:650;letter-spacing:-.01em}
-header p{margin:2px 0 0;color:var(--mute);font-size:14px}
-section{background:var(--card);border-radius:22px;padding:20px;box-shadow:var(--shadow)}
-h2{margin:0 0 4px;font-size:13px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--mute)}
-.sub{margin:0 0 14px;color:var(--mute);font-size:14px}
-.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-.grow{flex:1;min-width:0}
-.mt10{margin-top:10px} .mt12{margin-top:12px}
-
-.status{display:flex;align-items:center;gap:12px;margin-bottom:14px}
-.dot{width:12px;height:12px;border-radius:50%;background:var(--off);flex:none}
-.dot.ok{background:var(--ok)} .dot.warn{background:var(--warn)} .dot.bad{background:var(--bad)}
-.status b{font-size:18px;font-weight:650}
-.status small{display:block;color:var(--mute);font-size:13px;line-height:1.35}
-
-button{
-  font:inherit;font-size:15px;font-weight:600;border:0;border-radius:14px;padding:12px 16px;
-  background:var(--tone);color:var(--ink);cursor:pointer;transition:background .15s,opacity .15s,transform .05s;
-}
-button:active{transform:scale(.98)}
-button:hover{background:var(--tone2)}
-button.primary{background:var(--ink);color:var(--on-ink)}
-button.primary:hover{opacity:.88;background:var(--ink)}
-button.danger{color:var(--bad)}
-button.small{padding:8px 12px;font-size:13px;border-radius:11px}
-button:disabled{opacity:.45;cursor:default;transform:none}
-.wide{width:100%}
-
-.chip{
-  background:var(--tone);border-radius:14px;padding:12px 14px;font:13px/1.45 ui-monospace,"SF Mono",Menlo,Consolas,monospace;
-  word-break:break-all;color:var(--ink);
-}
-.chip.mute{color:var(--mute)}
-.chiprow{display:flex;gap:8px;align-items:stretch;margin-bottom:10px}
-.chiprow .chip{flex:1;min-width:0}
-.chiprow button{flex:none}
-.label{display:block;margin:12px 0 6px;font-size:13px;color:var(--mute)}
-
-input{
-  width:100%;font:inherit;font-size:15px;color:var(--ink);background:var(--tone);border:0;border-radius:14px;
-  padding:12px 14px;outline:none;transition:background .15s;
-}
-input:focus{background:var(--tone2)}
-input::placeholder{color:var(--mute)}
-
-.seg{display:flex;background:var(--tone);border-radius:16px;padding:4px;gap:4px;margin-bottom:14px}
-.seg button{flex:1;background:transparent;padding:10px 8px;font-size:14px}
-.seg button:hover{background:var(--tone2)}
-.seg button.on{background:var(--card);box-shadow:0 1px 3px rgba(0,0,0,.12)}
-.seg.locked button{opacity:.5;pointer-events:none}
-.seg.locked button.on{opacity:1}
-
-.note{margin:0 0 10px;font-size:14px;color:var(--mute)}
-.note.ok{color:var(--ok)} .note.bad{color:var(--bad)}
-.banner{background:var(--tone);border-radius:14px;padding:12px 14px;margin-bottom:12px;font-size:14px}
-.banner button{margin-top:8px}
-
-ol.steps{margin:0;padding:0;list-style:none;counter-reset:s;display:flex;flex-direction:column;gap:16px}
-ol.steps li{counter-increment:s;padding-left:34px;position:relative;font-size:15px}
-ol.steps li::before{
-  content:counter(s);position:absolute;left:0;top:0;width:24px;height:24px;border-radius:50%;
-  background:var(--tone);color:var(--mute);font-size:13px;font-weight:600;display:flex;align-items:center;justify-content:center;
-}
-ol.steps .chiprow{margin:8px 0 0}
-
-details{margin-top:4px}
-summary{cursor:pointer;color:var(--mute);font-size:14px;padding:4px 0}
-pre{margin:10px 0 0;white-space:pre-wrap;word-break:break-all;max-height:240px;overflow:auto}
-
-#toast{
-  position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(20px);opacity:0;pointer-events:none;
-  background:var(--ink);color:var(--on-ink);padding:12px 18px;border-radius:999px;font-size:14px;font-weight:600;
-  max-width:88vw;text-align:center;transition:opacity .2s,transform .2s;
-}
-#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
-#expired{
-  position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;
-  padding:32px;text-align:center;color:var(--mute);z-index:9;
-}
+.sprite{position:absolute;width:0;height:0;overflow:hidden}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer}
 [hidden]{display:none !important}
+
+.app{max-width:480px;min-height:100vh;min-height:100dvh;margin:0 auto;display:flex;flex-direction:column;
+  padding:max(14px,env(safe-area-inset-top)) 22px max(18px,env(safe-area-inset-bottom))}
+.top{display:grid;grid-template-columns:44px 1fr 44px;align-items:center;height:52px}
+.brand{display:flex;align-items:center;justify-content:center;gap:10px;font-size:21px;font-weight:600;letter-spacing:-.01em}
+.logo{width:30px;height:30px;fill:none;stroke:#fff;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.icon-btn{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;transition:background .2s}
+.icon-btn:hover{background:var(--glass)}
+.invisible{visibility:hidden}
+.ico{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none}
+
+main{flex:1;display:flex;flex-direction:column}
+.screen{flex:1;display:flex;flex-direction:column;align-items:center;text-align:center;padding-top:6px}
+.screen.enter{animation:rise .5s cubic-bezier(.2,.7,.2,1)}
+.hero{flex:none;margin:6px auto 0;max-width:100%}
+.hero svg{display:block;width:100%;height:auto;overflow:visible}
+.hero-xl{width:min(92vw,350px)} .hero-md{width:min(76vw,290px)} .hero-sm{width:min(58vw,200px)}
+h1{margin:20px 0 12px;font-size:clamp(32px,9.6vw,46px);line-height:1.05;font-weight:800;letter-spacing:-.028em}
+.lead{margin:0 auto;max-width:31ch;font-size:17px;line-height:1.45;color:var(--mute)}
+.body{width:100%;margin-top:22px;text-align:left}
+.actions{width:100%;margin-top:auto;padding-top:26px;display:flex;flex-direction:column;align-items:center;gap:10px}
+.gap-top{margin-top:clamp(18px,7vh,64px)}
+
+.cta{width:100%;padding:17px 22px;border-radius:999px;font-size:17px;font-weight:700;color:#fff;
+  background:linear-gradient(180deg,#34c3ff 0%,#1f7bff 100%);box-shadow:0 14px 36px rgba(31,123,255,.42);
+  transition:transform .08s,opacity .2s,box-shadow .2s}
+.cta:active{transform:scale(.985)}
+.cta:disabled{opacity:.38;box-shadow:none;cursor:default;transform:none}
+.ghost{padding:13px 16px;border-radius:999px;font-size:15px;font-weight:600;background:var(--glass);color:var(--ink);transition:background .2s,opacity .2s}
+.ghost:hover{background:var(--glass-hi)}
+.ghost:disabled{opacity:.4;cursor:default}
+.ghost.sm{padding:9px 14px;font-size:14px}
+.ghost.warn{color:var(--bad)}
+.trio{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}
+
+.field{display:flex;align-items:center;gap:12px;background:var(--glass);border-radius:20px;padding:13px 12px 13px 18px;margin-top:10px;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
+.fx{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
+.k{font-size:11px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:var(--faint)}
+.v{font:500 14px/1.45 ui-monospace,"SF Mono",Menlo,Consolas,monospace;word-break:break-all;color:var(--ink)}
+.v.mute{color:var(--faint)}
+.copy{width:42px;height:42px;border-radius:50%;background:var(--glass);display:flex;align-items:center;justify-content:center;flex:none;transition:background .2s}
+.copy:hover{background:var(--glass-hi)}
+
+.seg{display:grid;grid-template-columns:1fr 1fr;gap:6px;background:var(--glass);padding:5px;border-radius:20px}
+.seg button{padding:13px 8px;border-radius:16px;font-weight:600;font-size:15px;color:var(--mute);transition:background .2s,color .2s}
+.seg button.on{color:#fff;background:linear-gradient(180deg,#2fb4ff,#1f6bff);box-shadow:0 8px 22px rgba(31,107,255,.4)}
+.seg.locked button:not(.on){opacity:.4;pointer-events:none}
+.note{margin:14px 4px 0;font-size:14px;line-height:1.5;color:var(--mute)}
+.note.ok{color:var(--ok)} .note.bad{color:var(--bad)}
+.lab{display:block;margin:18px 4px 8px;font-size:11px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:var(--faint)}
+.inp{width:100%;font:inherit;font-size:16px;color:var(--ink);background:var(--glass);border:0;border-radius:18px;padding:15px 17px;outline:none;transition:background .2s}
+.inp:focus{background:var(--glass-hi)}
+.inp::placeholder{color:var(--faint)}
+.banner{background:rgba(255,198,90,.12);color:var(--warn);border-radius:18px;padding:14px 16px;margin-bottom:6px;font-size:14px;line-height:1.45}
+.banner .ghost{margin-top:10px;color:var(--ink)}
+.steps{margin:18px 4px 0;padding:0;list-style:none;display:flex;flex-direction:column;gap:6px;font-size:14px;line-height:1.5;color:var(--mute);text-align:left}
+
+.power{position:relative;width:136px;height:136px;margin:26px auto 4px;flex:none}
+.power svg{position:relative;display:block;width:100%;height:100%;overflow:visible}
+.power .halo{position:absolute;inset:-38px;border-radius:50%;pointer-events:none;
+  background:radial-gradient(circle,rgba(31,139,255,.52) 0%,rgba(31,139,255,0) 64%);animation:breathe 3.6s ease-in-out infinite}
+.disc{fill:#04203a}
+.ring{fill:none;stroke-width:5;stroke:url(#g-ring)}
+.ring-glow{fill:none;stroke-width:13;stroke:#2f8cff;opacity:.22}
+.glyph{fill:none;stroke:#fff;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.power.on .ring{stroke:url(#g-ring-on)} .power.on .ring-glow{stroke:#38e1ff;opacity:.3}
+.power.on .halo{background:radial-gradient(circle,rgba(56,225,255,.5) 0%,rgba(56,225,255,0) 64%)}
+.power.ok .ring{stroke:var(--ok)} .power.ok .ring-glow{stroke:var(--ok);opacity:.3}
+.power.ok .halo{background:radial-gradient(circle,rgba(62,230,180,.45) 0%,rgba(62,230,180,0) 64%)}
+.power.fail .ring{stroke:var(--bad)} .power.fail .ring-glow{stroke:var(--bad);opacity:.3}
+.power.fail .halo{background:radial-gradient(circle,rgba(255,122,122,.4) 0%,rgba(255,122,122,0) 64%)}
+.power.busy .ring{stroke-dasharray:72 243;transform-origin:60px 60px;animation:spin 1s linear infinite}
+.power:active svg{transform:scale(.97)}
+
+.status{display:flex;align-items:center;justify-content:center;gap:9px;margin-top:20px;font-size:15px;font-weight:600;color:var(--mute)}
+.dot{width:9px;height:9px;border-radius:50%;background:var(--faint)}
+.dot.ok{background:var(--ok);box-shadow:0 0 12px var(--ok)} .dot.warn{background:var(--warn);box-shadow:0 0 12px var(--warn)} .dot.bad{background:var(--bad);box-shadow:0 0 12px var(--bad)}
+.checks{list-style:none;margin:22px 0 0;padding:0;width:100%;display:flex;flex-direction:column;gap:8px;text-align:left}
+.checks li{display:flex;align-items:flex-start;gap:12px;background:var(--glass);border-radius:18px;padding:13px 16px;font-size:14px;line-height:1.45;color:var(--mute)}
+.checks .mark{font-weight:800;flex:none;width:16px;text-align:center}
+.checks li.ok .mark{color:var(--ok)} .checks li.bad .mark{color:var(--bad)} .checks li.skip .mark{color:var(--faint)}
+.checks b{display:block;color:var(--ink);font-weight:600}
+details{width:100%;margin-top:22px;text-align:left}
+summary{cursor:pointer;color:var(--faint);font-size:14px;padding:6px 4px;list-style:none;text-align:center}
+summary::-webkit-details-marker{display:none}
+pre{margin:8px 0 0;padding:14px 16px;background:var(--glass);border-radius:18px;font:12px/1.5 ui-monospace,Menlo,Consolas,monospace;color:var(--mute);white-space:pre-wrap;word-break:break-all;max-height:220px;overflow:auto}
+
+.foot{padding-top:18px}
+.dots{display:flex;gap:9px;justify-content:center;align-items:center}
+.dot-nav{position:relative;width:8px;height:8px;border-radius:99px;background:rgba(255,255,255,.22);transition:width .3s,background .3s,box-shadow .3s}
+.dot-nav::before{content:"";position:absolute;inset:-12px -4px}
+.dot-nav.on{width:26px;background:var(--cyan);box-shadow:0 0 14px rgba(56,225,255,.7)}
+
+.orbit-glow{fill:none;stroke:#38e1ff;stroke-opacity:.13;stroke-width:6}
+.orbit{fill:none;stroke:url(#g-orbit);stroke-width:1.5}
+.node{fill:#fff}
+.nglow{fill:#38e1ff;opacity:.3;animation:twinkle 3.2s ease-in-out infinite}
+.orbits{transform-origin:50% 50%;animation:spin 140s linear infinite}
+.orbits > g:nth-child(2) .nglow{animation-delay:-.8s} .orbits > g:nth-child(3) .nglow{animation-delay:-1.6s}
+.orbits > g:nth-child(4) .nglow{animation-delay:-2.2s} .orbits > g:nth-child(5) .nglow{animation-delay:-2.8s}
+.ic-float{animation:float 5s ease-in-out infinite}
+
+#toast{position:fixed;left:50%;bottom:calc(28px + env(safe-area-inset-bottom));transform:translate(-50%,16px);opacity:0;pointer-events:none;
+  background:rgba(255,255,255,.14);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);color:#fff;
+  padding:12px 20px;border-radius:999px;font-size:14px;font-weight:600;max-width:88vw;text-align:center;transition:opacity .25s,transform .25s;z-index:20}
+#toast.show{opacity:1;transform:translate(-50%,0)}
+#expired{position:fixed;inset:0;z-index:30;display:flex;align-items:center;justify-content:center;padding:36px;text-align:center;
+  color:var(--mute);line-height:1.6;background:linear-gradient(180deg,#06395f,#021626)}
+
+@keyframes rise{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes breathe{0%,100%{opacity:.6;transform:scale(.96)}50%{opacity:1;transform:scale(1.05)}}
+@keyframes twinkle{0%,100%{opacity:.12}50%{opacity:.5}}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
+@media (prefers-reduced-motion:reduce){*{animation:none !important;transition:none !important}}
 </style>
 </head>
 <body>
+<svg class="sprite" aria-hidden="true" focusable="false" width="0" height="0">
+  <defs>
+    <radialGradient id="g-sphere" cx=".36" cy=".3" r=".92"><stop offset="0" stop-color="#58dcff"/><stop offset=".36" stop-color="#1f9ce8"/><stop offset=".7" stop-color="#0b5db3"/><stop offset="1" stop-color="#072d66"/></radialGradient>
+    <radialGradient id="g-shade" cx=".34" cy=".28" r=".95"><stop offset=".55" stop-color="#021626" stop-opacity="0"/><stop offset="1" stop-color="#021626" stop-opacity=".6"/></radialGradient>
+    <radialGradient id="g-rim" cx=".5" cy=".5" r=".5"><stop offset=".8" stop-color="#38e1ff" stop-opacity="0"/><stop offset="1" stop-color="#38e1ff" stop-opacity=".55"/></radialGradient>
+    <radialGradient id="g-halo" cx=".5" cy=".5" r=".5"><stop offset=".55" stop-color="#2aa0ff" stop-opacity=".32"/><stop offset="1" stop-color="#2aa0ff" stop-opacity="0"/></radialGradient>
+    <linearGradient id="g-land" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#a6f6ff" stop-opacity=".8"/><stop offset="1" stop-color="#4fd0f2" stop-opacity=".55"/></linearGradient>
+    <linearGradient id="g-orbit" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#38e1ff"/><stop offset=".5" stop-color="#8fe6ff"/><stop offset="1" stop-color="#38e1ff"/></linearGradient>
+    <linearGradient id="g-ring" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#4aa8ff"/><stop offset="1" stop-color="#1f6bff"/></linearGradient>
+    <linearGradient id="g-ring-on" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#7af2ff"/><stop offset="1" stop-color="#2fb7ff"/></linearGradient>
+    <clipPath id="clip-globe"><circle cx="180" cy="180" r="125"/></clipPath>
+    <clipPath id="clip-orb"><circle cx="180" cy="180" r="84"/></clipPath>
+    <path id="land-path" fill="url(#g-land)" d="M266 244 265.6 247.5 264.6 247.9 263.3 251.9 257.3 262.2 256 264.2 253.1 266.2 251.4 266 251.7 262.1 254.5 258.3 255 254.3 256.3 252 259.4 250.2 262 247.3 265.2 241.9 266 244ZM305 181.3 304.4 167.4 305 181.3ZM300.7 180.8 300.3 182.1 299.8 181 299.1 174.7 300.6 177.7 300.7 180.8ZM67.6 182.3 66.8 181.4 67.2 180.3 67.9 180.8 67.6 182.3ZM68 162.2 66.8 161.3 67.2 160.3 68 162.2ZM62.2 152.9 62.3 150.6 62.2 152.9ZM65.2 152.9 66.5 156.9 66 159.5 65.1 157.4 64.2 158.3 64.1 156.3 63.4 155.2 63.6 153.6 64.5 155.4 64.7 152.6 65.2 152.9ZM65.2 141.2 64.6 151 63.4 148.3 64 147.9 64.8 139.6 64.8 138.6 63.9 138.7 65 137.7 65.2 141.2ZM66.6 141.3 67.7 138 66.6 141.3ZM69.1 135.9 69 134.5 69.1 135.9ZM69.3 136.5 68.6 137.7 69.5 135.1 69.3 136.5ZM230.1 153.2 229.3 154.3 229.7 154.9 228.3 156.1 227.4 156 226.8 155.2 230.1 153.2ZM212.5 156.6 213.6 157.2 217 156.7 217 157.4 214.6 158 212.4 157.5 212.5 156.6ZM197.9 152.8 197.6 156.3 192.8 154.5 193 153.4 197.9 152.8ZM186.9 147.1 188 148.6 187.9 151.4 186.5 152 185.8 151.4 185.2 147.7 186.9 147.1ZM187.4 145.1 186.9 146.7 185.7 144.9 187 143.3 187.4 145.1ZM99.9 112.1 100.7 113.3 99.8 113.7 99.4 112.1 100.5 111.2 99.9 112.1ZM104.8 109.2 104.5 106.5 105.1 107.7 104.8 109.2ZM110.6 109.8 108.9 110.9 109.8 110.7 110 111.4 109.2 111.8 110.4 113.6 109.2 114.6 110 114.7 108.7 116.9 107.2 118.2 106.5 117.3 107.8 115.7 105.7 116.5 105.3 116.1 106.5 115.7 106.1 114.8 104.1 113.1 105.4 111.6 109.9 109.1 112.2 108.5 110.6 109.8ZM164.4 124 161.8 124.9 160 124.4 161.5 122.5 161.3 120.5 164.4 118.4 165.5 118.4 166.6 119.7 164.4 124ZM189.4 118 188.9 119.5 187.2 117.8 188.9 117 189.4 118ZM170.9 112.3 169.4 114.2 171.9 114.1 170.1 117.2 171.4 117.4 174 123.3 175.6 123.7 174.7 125.5 175.2 126.5 173.9 127.5 169 127.4 168 128.3 166.8 128 165.7 128.7 165 128.2 168.6 126 166.5 125.5 166.3 124.7 167.7 124.2 167.2 123.1 167.6 121.8 169.5 122.1 169.8 121 169.1 119.8 167.7 119.3 167.7 117.4 166.9 118.3 166.8 115.5 168.7 112.2 170.9 112.3ZM121.9 83.2 120.9 83.6 121.7 82.8 122.3 82.7 121.9 83.2ZM122.8 81.5 121.7 81.2 123.1 80.7 122.8 81.5ZM128.5 77.6 124.9 81.3 124.2 81.2 125.4 79.7 123.4 79.6 124.3 78.5 128.5 77.6ZM163.3 97.6 162.7 98.7 163.2 99.9 161.6 101 157.6 101.9 154.4 100.3 155.7 99.8 154.3 98.6 155.9 98.6 156.2 98.2 154.7 97.4 155.9 96.5 157.2 96.6 157.8 97.9 159.5 97.3 160.3 97.9 162 97.3 163.3 97.6ZM132.1 79.8 132.8 79 134.3 78.8 132.1 79.8ZM180 55.1 184.6 55.1 180 55.1ZM136.2 71.4 135.6 71.4 137.5 69.9 138.7 70.1 136.2 71.4ZM183.6 56 184.4 56.1 183.6 56ZM182.6 55.9 183.6 56 182.6 55.9ZM136.4 72.9 131.6 75.6 137 74.3 136.6 75.4 131.5 77.8 130 77.7 130.3 76.6 126.8 77.4 123.3 77 116.4 79 112.6 81.9 108.8 87.6 108.6 89.3 105.4 91.6 102 95.5 104.5 94.5 108 91.2 111.8 90.7 115.7 87.1 122.9 83.6 122.6 85.2 123.3 85.3 121.4 87.8 121.7 88.7 117.9 91.4 117.1 93.1 122 91.8 117.6 97.8 116.3 98.5 115.6 101.2 115.9 103.1 114.8 104.6 114.8 106 113.1 107.8 107.5 108.4 104.2 104.8 97 107.1 102.4 106.4 103.3 107.1 103 108.4 101.5 108.9 99 112.1 99 113.8 100.2 114.5 102.4 113.3 101.3 115.5 94.7 115.9 94.4 115.3 95.6 113.9 97.7 113.7 96.1 112.2 95.7 112.9 92.6 112.6 90.4 114.3 89.8 116 87.4 114.5 88 115.7 87.1 114.6 84.3 116.9 84.9 115.5 83.5 117.6 81.7 118.9 84.2 115.5 82.7 117.2 82.8 116.5 79.6 121.9 78.5 122.6 76.3 122.7 73.6 124.4 67.3 136.1 71.9 124.4 71.4 124.4 72.4 119.8 71.2 121.6 72.7 117 72.2 117 67.4 125.8 62.8 136.5 62.6 137.7 63.8 135 63.8 136.9 60.1 145.6 59.3 152.6 57.1 161.2 56.7 166.2 57.3 166.4 57.7 170.8 59.2 167.8 59.9 168.9 61.2 168.1 59.9 174.7 60.7 171.3 61.5 171.6 62 170.2 62.4 175 64.4 178.9 65.1 178.3 67 180.3 66.2 180.1 66.3 181.3 70.1 193.8 73.4 196.8 76.3 202.1 77 207.3 77.7 208 77.7 209.4 76.7 210.4 77.1 211.3 79.4 213 79.4 214.9 80.4 214.2 84.4 218.3 84.9 220.8 86.6 221 91.8 224.3 96.3 229.9 99.6 232.3 100.8 236.2 100.4 239 97.8 241.5 95.7 245.1 97 251.8 96.7 257.3 95.8 257.5 95.8 258.3 92.5 257.1 89.9 257.4 89.6 258.4 91.4 262.2 91.1 265 91.8 266.9 87.2 263 94.4 271.1 106.5 281.1 92.4 269.2 80.2 255.2 70.8 240.9 62.5 222.2 57.9 206.7 55.7 192.7 55.5 183.2 56.5 179.9 57.2 170.2 57.1 167.7 56.3 169.8 56.9 160 60 145.1 67 126.6 76.1 110.5 86.8 96.7 76.3 110.2 88.1 95.3 97.8 85.8 106.3 79 115.9 72.7 126.9 66.9 139.1 61.9 150 58.6 162.1 56.3 173.8 55.2 168.3 55.7 173.1 55.7 152 59.7 149 61.4 149.5 61.6 139.4 65.5 136 67.8 138.2 67.5 134.4 70.2 134 71.2 135.5 71 132.7 72.3 141.8 70.2 136.4 72.9ZM148.3 64.7 143.8 66.6 146.6 66.2 146.1 66.7 138.9 69.3 136.8 69.3 139.7 65.9 141.9 64.9 143.8 64.4 142.7 65.7 145 64.2 145.9 64 145.7 64.5 147.4 63.6 148.8 63.9 149 64.5 148.3 64.7ZM146.4 67.1 145.3 67 147 66.5 146.4 67.1ZM144.1 74.9 143.5 75.1 143.1 74.3 145.2 73.4 144.1 74.9ZM143.8 72 142.5 72.6 145.1 72.9 141.6 74.4 143.2 74.7 140.7 76.9 141.4 77.2 139.4 79.8 137.8 81 136.4 80.9 134.4 84.5 134.8 85.2 130.7 86.5 132.5 83.9 131.9 83.6 126.1 88.8 126.9 86 124.3 89.2 124.8 86 127.4 82.6 126.8 82.9 126.1 81.8 126.7 81.2 128.2 80.8 129 82.2 132.8 80.9 137.8 76.3 136.8 75.8 138.2 73 142 71.5 144.6 71.3 145.1 71.9 143.8 72ZM146.5 68 145.2 69 141 69.5 144.2 67.9 144.8 67.8 144.2 68.4 146.5 68ZM203.9 60.6 205.4 61.3 203.9 60.6ZM143.4 70.4 142.1 70.1 146.3 69.5 145.4 70.6 143.4 70.4ZM147.5 63.4 150.6 62.1 154 62.3 149.4 64.4 149 63.6 147.5 63.4ZM198.1 59.8 200.1 60.5 198.1 59.8ZM148 69.4 147.2 69.4 148.2 68.6 149.5 68.8 148 69.4ZM200 60.7 203.9 61.6 202.4 62 200 60.7ZM152.1 67.7 148.5 68.3 150.3 67.1 151.8 66.9 152.1 67.7ZM152.6 65.7 149.9 66.3 150.5 64.7 151.4 65.1 153.2 63.8 154.8 64.3 151.9 65.3 154 65.4 152.6 65.7ZM212.8 85 210.9 85.8 208 84.8 206.8 82.3 204.9 80.4 205.2 76.1 206.5 76.8 207.2 80.7 209.2 83.5 212.8 85ZM152.5 68.4 149 70.2 149.2 72 147.6 72.8 146.5 72.5 146.4 71 147.6 69.7 152 68 152.8 68 152.5 68.4ZM157.1 64.2 155.3 64 155.3 63.4 156.3 62.9 157.6 63.7 157.1 64.2ZM207.6 68 208.6 68 207.6 67.2 208.9 66.7 213 68.2 213.4 67.6 212.8 67.3 214 67.4 212.7 66.8 212.3 66 213.2 66 212.3 65 210.8 64.9 210 64 213.2 63.2 211 62.9 208.1 61.2 205.9 61.1 197.9 57.2 183.9 55.5 184.6 55.1 195.9 56 207.2 58 217.6 60.8 200.2 56.6 215.2 60 228.9 65 238.8 69.7 250.2 76.6 260.7 84.5 270.2 93.5 283.5 109.9 293.6 127.7 297.6 137.5 300.9 148.2 303.2 158.8 304.5 169.4 302.9 157.3 300.7 148.7 299.5 145.3 300.1 149.7 297.6 143.3 295 139.7 296.8 159.6 296.3 162.6 298.7 173.9 298.1 180.7 287.7 158.5 286.3 161.2 284.2 159.9 283.8 158.2 281.3 157.6 279.1 155.5 274.4 159.8 269.2 161.3 267.8 159.1 267 159.1 265.4 161.6 263.5 161.7 260.2 160.8 256.6 157 256 157.7 254.9 157.3 254.7 158.4 253.8 158.6 255.5 161.3 256.6 162.8 259.2 164.1 261.4 167.6 260.8 164.9 261.8 165 262.3 167.5 263.2 168.5 266.1 166.9 267.5 160.7 269.6 164.7 272.4 164.8 274.5 166.6 274.1 171.3 273.4 172.2 274 174.9 271.3 181.1 268.3 183.9 268.3 185.7 263.8 191.3 259.2 194.6 258.4 196.3 255.9 197.3 253.6 192.4 253.1 189.1 249.2 184.3 245.4 181.5 244.7 178.8 243.2 176.7 241.2 175.9 235.4 169 234.5 169.2 234.3 166 233.5 170.3 229.9 166.3 234.6 173.5 238.3 177.5 238.4 179.3 241.2 181.1 243.6 187.9 245.5 188.8 247.7 192.7 255.2 197.4 255.8 198.8 254.9 199.6 257.6 201.4 261.6 199.1 268.1 193.7 268.4 196.6 267.6 202.5 265.8 209.1 262.8 215.4 252.1 229.7 249.1 236.9 249.1 237.9 250.2 238.3 249.5 241.4 251.3 244.8 250.7 251.5 249 254.2 238.4 262.8 238 263.9 238.9 266 237.8 269 232.1 272.5 232.5 273.1 230.8 276.1 225.3 280.6 216.8 285.2 211.3 286 205.9 287.7 203.8 286.9 203.6 285.5 204.3 284.4 199.7 279.2 198.6 272.4 194.1 266.6 194.2 262.9 195.9 259.1 198.4 256.4 198.5 254.1 196.9 251.5 197.7 250.4 195 244.1 188.3 236.8 190.4 228.5 189.6 227.2 188.6 226.9 187.6 225.2 182 226.3 178.5 222.2 173.2 222.4 164.9 225 159.1 223.7 152 224.7 141.8 216.4 140.5 212.7 135 206.1 135 203.1 133.5 200.4 134.4 200.1 136.1 197.8 137.1 193.7 137.4 189.4 136.2 187.1 136.6 185.3 138.2 183.8 139 181.6 140.9 180.2 142.7 176.6 146.6 173.3 148.3 173.3 152.8 169.9 152.7 167.2 154 164.3 158.6 161.4 160.8 158 162 158.1 163 159.1 167.2 159.7 173.8 156.9 180.6 156.8 182.2 155.9 184.8 156.3 187.8 155.3 189 155.5 189 156.6 190.5 155.7 189.8 157.2 190.4 160.6 189.3 161.7 189.7 162.9 190.6 162.9 191.8 164.2 198.8 165.6 199.8 167.5 206.3 169.3 207.8 167.5 207.2 165.9 207.6 164.8 209.9 163.2 212.3 163.3 213.1 164.2 216.2 164.4 216.7 165 219 164.6 223.5 165.4 226.7 163.2 227.9 163.2 228.6 164.1 228.8 163.4 231.6 163.4 232.3 162.6 233 154.8 232.4 152.3 231.6 151.5 231.9 150.6 229.6 150.8 228.9 152.3 226.6 153.1 225.1 152.2 223.4 152.5 223.2 153.5 222.2 153.9 220.3 153.1 218.6 153.5 215.7 150.6 216.1 148.9 214.9 148 216.1 145.8 218.4 145.2 218.6 143.6 221.5 143.2 224.3 140.6 226.7 139.9 231.9 140.9 234.6 140 235.7 138.5 234.6 136.3 226.2 133.1 227 132.5 227.4 130.6 226.3 130 227.6 128.3 223.2 131.6 223.7 132.8 225.8 132.7 225.9 133.4 223.2 135.8 222.3 135.5 222.2 134.5 220.5 134.3 221.7 132.9 221.1 132.5 218.8 132.5 218.5 131.8 217.3 132.3 216.8 135.7 215.8 136.2 216.1 138.7 215.5 141.2 216.7 143 218.2 143.5 218 144 216.3 144.5 214.8 146.6 214 145.2 212.2 145.3 210.4 146.1 211.8 147.1 211 147.6 210.2 147.7 209.1 146.8 208.9 147.3 210.5 149.3 210 149.9 212 151.2 212.3 152.4 210.7 152 211.4 153 210.4 153.4 211.3 155.2 208.7 154.6 207.2 151.7 203.7 147.9 203.4 144.8 197.3 141.7 195.2 138.6 194.2 138.3 193.8 139.2 193.6 137.6 192.4 137.4 191.2 138.2 191.9 140.8 196.4 145 197.6 144.9 197.7 145.8 202.3 148.2 202.1 149 199.6 147.9 199.1 149.4 200.4 150 200.3 151.1 199.6 151.3 199 153.2 198.3 153.5 198.7 151.2 197.3 149 191.5 145.9 188.8 143.4 188.2 141.4 186.1 140.5 182.4 143.2 179.3 142.6 177 143.3 176.8 145.7 175.2 147.1 173.1 147.5 171.1 151 171.7 152.3 170.2 154.6 168.9 154.9 167.5 156.5 163.7 156.3 161.8 157.7 160.9 157.4 160 155.4 156 155.1 156.5 152.2 155.5 151.1 157.5 147 157.3 142.1 159.7 140.9 169.1 142.3 170 141.1 170.6 137 168.3 133.7 166.2 132.8 166.2 131.3 168.1 131 170.5 131.6 170.3 129.3 171.5 130.3 174.9 128.8 175.4 127.2 178.4 125.9 179.6 123.1 182.7 121.9 184 122.2 184.9 121.2 183.7 116.4 184.2 115.4 186.5 114.1 186.2 115.7 187.1 116.5 185.7 118.4 186.2 120.1 187.5 120.4 187.6 121.1 189.5 120.1 191.7 121.4 195.7 118.9 198.4 119.5 198.5 118.6 200 117.8 199 114.8 199.2 113.6 200.1 112.9 201.4 114.1 202.3 113.9 201.8 111.4 200.6 111.2 200.1 110.2 202.5 109 204.8 108.8 205.5 107.7 204.1 107 199.3 109.1 197.2 107.7 196 103.4 198.3 99.7 196.5 98.4 195.2 99.1 194.7 100.4 195.2 101.4 192.7 104.6 192.6 107.1 194.9 109.2 194.4 111.3 193.3 111.8 193.2 116.8 191.7 116.7 191.2 118.2 189.8 118.4 185.9 110.9 183.9 113.1 182.4 113.6 180.8 112.7 180 106.6 185.2 102.1 188 96.4 190.6 92.9 193.1 91.9 193.6 90.5 195.9 89.9 198.5 90.6 197.9 91.1 199.2 91.9 199.6 91.2 207.1 92.7 209 94.2 208.9 95.2 208 96 203.4 96 205.4 96.9 206.9 99.2 209.2 99.6 207.8 98.3 208 97.6 210.5 98 210.9 97.4 209.6 96.4 210.1 94.4 211.9 94.6 211.4 93.4 208.4 91.1 210.5 90.9 211.6 91.6 211 92 211.7 92.8 212.7 93.1 213.4 92.4 212.7 91.5 213.9 88.3 214.8 89.2 215.6 89 216.3 86.9 217.9 87.3 217.3 86.1 215.5 85.2 221.7 84.9 215.8 82.2 213 79.3 214.2 78.9 222.8 82.9 226 86 226.6 85.7 224.5 83.1 216.9 80 214.6 78.3 218.3 79.3 216.3 78 216.6 77.4 218.1 77.3 214.1 76.1 214.2 74.2 211.8 73.3 209.2 69.5 206.3 68.3 207.6 68ZM245.4 135.4 247.9 136.8 247 137.3 247.5 140.4 249.1 142.6 251.7 143.1 253.6 142.7 255.2 141.3 253.2 137.4 252 137.2 251.6 135.7 250.8 136 250.1 134.2 251.4 134.2 252 133.1 249.7 131.5 249.1 132.4 249.8 133.8 247.6 130.8 246 130.8 243.3 128.5 244.4 128.2 243.6 126.9 245.4 126 243.6 123.1 241.5 123.6 240 125.8 239.2 130.2 245.4 135.4ZM153.3 68.5 154.2 67.9 153.3 68.5ZM155.9 65.3 157.1 64.8 155.9 65.3ZM188.9 81 188.2 81.7 186.9 80.7 187.7 80.4 188.9 81ZM157.6 65.3 158.4 65 157.6 65.3ZM154.6 68 156.6 67.3 154.6 68ZM155.6 67.1 154.7 67.2 156.4 66.1 158.3 66 155.6 67.1ZM204.9 68 206.1 69.3 202.9 68.3 204.9 68ZM185.1 79 186.8 79.8 186 80.4 186 82.8 185.4 82.9 182.1 79.3 184.5 78.6 185.1 79ZM187.3 77.8 188.2 78.1 188.1 78.8 187.1 79.2 184.5 78.3 187.3 77.8ZM194.8 75.4 194.7 76.4 193.1 76 194.2 75.7 194 75.2 194.8 75.4ZM204 68.8 203.8 69.7 200.9 69.9 199 68.8 204 68.8ZM157.6 69.1 154.7 69.2 155 68.5 161.2 67.6 157.6 69.1ZM165.6 70.3 164.7 71.5 158.5 71.7 157.1 71 155.5 71.7 150.2 71.9 150.9 69.8 153.8 69.5 153 70.3 154.8 69.4 158.8 69 158.5 69.6 159.3 69.7 159.4 68.8 162.5 67.9 164 68.5 163.3 68.9 165.1 69.1 165.6 70.3ZM172.5 73.6 173.1 74.8 169.7 74.9 172 75.4 170.9 76.4 173.8 76 174.4 76.9 171 77.8 171.7 78 169.8 79.5 168.8 81.9 167 82 167.4 82.9 166.1 84.1 166 85.4 164.8 85.2 164.5 86.3 162.8 86.2 162.5 87.9 161.7 87.1 161.1 87.4 161.9 89 161.4 90.2 160 90.2 159.8 88.5 158 90.1 160.5 90.9 155.2 92.4 152.1 92.1 146.4 94.1 143.4 93.9 139.7 96.4 137.5 97.1 133.4 100.8 132.3 100.3 132.5 98.6 131.2 97.8 133.6 92.7 138.5 87.4 144.5 85 142.3 85.1 142.4 84.3 144.7 83.1 145.4 84.1 146.1 82.4 145.6 81.8 147.7 81.1 152 77.3 152.5 76.2 151.1 74.7 152.7 73.4 154.1 74.1 154.6 72.4 158.3 72.9 159.5 72.1 163.5 71.8 165 72.2 165 72.9 166.5 72.7 166.2 74 167.4 72.9 169 72.7 172.5 73.6Z"/>
+    <path id="grat-path" fill="none" stroke="#c8f3ff" stroke-opacity=".14" stroke-width=".6" d="M149.7 301.3 161.7 303.5 170.2 304.4 178.9 304.7 187.6 304.5 196.2 303.8 204.4 302.5 212.2 300.8M76.5 250 81.9 256.2 89.2 262 98.3 267.3 103.5 269.7 114.9 274.1 127.5 277.7 141.2 280.5 155.6 282.4 178.1 283.6 193.2 283.3 208 282 222.3 279.9 229.1 278.5 242.1 275 253.8 270.9 264.1 266 272.8 260.6 276.5 257.7 282.4 251.6M55 181 55.5 184.8 56.5 188.6 58.2 192.3 60.5 196 63.3 199.6 66.7 203.2 75.2 209.8 80.2 213 91.6 218.7 98 221.4 111.9 226 119.4 227.9 135.2 231.2 151.9 233.4 160.4 234.1 177.8 234.8 195.2 234.4 203.9 233.8 220.7 231.8 228.8 230.4 244.4 227 251.7 224.9 265.2 220.1 277.1 214.5 282.4 211.4 291.4 204.9 295.1 201.4 298.2 197.8 300.7 194.2 302.7 190.5 304.1 186.7 304.8 182.9M75.4 111.5 73.7 114.8 72.6 118 71.9 121.3 71.8 124.7 72.2 128 73.1 131.2 74.5 134.5 78.9 140.8 85.3 146.8 93.5 152.4 98.3 155 109 159.6 114.9 161.7 127.5 165.3 148.3 169.2 163.1 170.7 178.1 171.3 200.7 170.4 222.3 167.5 229.1 166.1 242.1 162.7 253.8 158.5 264.1 153.7 268.7 151 276.5 145.4 279.6 142.4 284.6 136.1 286.3 132.9 287.4 129.6 288.1 126.3 288.2 123 287.8 119.7 286.9 116.4 285.5 113.2M144.2 60.3 137.4 62.7 131.4 65.5 126.4 68.6 120.9 73.8 119.6 75.6 118 79.4 117.5 83.2 118.3 87 120.2 90.7 123.4 94.3 130.1 99.2 135.8 102.1 146 105.7 153.6 107.5 161.7 108.9 170.2 109.8 183.3 110.1 191.9 109.6 200.3 108.6 208.4 107.1 219.3 104 225.7 101.4 231.2 98.4 235.7 95.1 240.4 89.8 242 86 242.5 82.2 241.7 78.4 240.9 76.5 238.3 72.9 234.7 69.4 229.9 66.2 224.2 63.3 214 59.7M184.4 55.2 183.7 55.8 182.3 58.8 180 67.7M155.2 57.5 158.5 57.2 161.9 57.4 165.4 58.3 169 59.8 172.6 61.8 180 67.7M114.2 73.7 119.8 70.6 125.7 68.1 131.9 66 138.4 64.6 145 63.7 151.8 63.3 158.7 63.6 165.7 64.4 172.9 65.7 180 67.7M59.2 148.2 61.6 140.7 64.5 133.5 68.1 126.5 72.2 119.7 76.8 113.2 81.9 107.1 87.5 101.3 93.5 95.9 100 90.9 106.8 86.3 114 82.2 121.5 78.6 129.4 75.4 137.4 72.8 145.7 70.7 154.1 69.1 162.7 68.1 171.3 67.6 180 67.7M90.7 267.4 86.1 262 81.9 256.2 78.2 250.1 75 243.6 72.3 236.7 70.1 229.6 68.4 222.3 67.3 214.8 66.8 207.1 66.8 199.2 67.3 191.3 68.4 183.3 70.1 175.3 72.3 167.3 75 159.4 78.2 151.6 81.9 143.9 86.1 136.4 95.8 122 107.2 108.8 120 97 126.8 91.7 133.9 86.8 141.3 82.3 148.8 78.4 156.4 74.9 164.2 72 172.1 69.5 180 67.7M142 299.1 137.9 297.3 133.9 294.9 130.2 292 126.7 288.5 123.5 284.5 120.6 280 117.9 275 113.5 263.7 110.4 250.7 108.7 236.4 108.3 220.9 108.7 212.9 110.4 196.4 113.5 179.5 117.9 162.7 120.6 154.4 126.7 138.2 130.2 130.4 137.9 115.5 146.3 101.9 155.5 89.8 160.2 84.4 170 75 180 67.7M174.9 304.8 173.6 303 172.4 298.7 171.4 292.2 170.2 278.3 169.2 246 169.4 205.8 171 162.4 173.6 121.2 176.3 93.1 180 67.7M208 301.6 211.1 300.1 214 298 216.7 295.3 219.3 292.1 223.8 284 225.7 279.2 229 268.1 231.3 255.4 232.5 241.1 232.8 225.7 231.3 201 229 184 223.8 158.3 219.3 141.7 211.1 118.3 204.8 104.1 198.1 91.4 191 80.4 187.4 75.7 180 67.7M251.1 282.7 256.1 278.5 260.7 273.9 264.9 268.9 268.7 263.4 272 257.5 274.9 251.2 277.4 244.6 279.4 237.7 280.8 230.5 281.8 223 282.3 215.3 282.3 207.5 280.8 191.4 279.4 183.3 274.9 167.1 268.7 151 260.7 135.6 251.1 121 240.2 107.6 228.1 95.6 215 85.2 201.3 76.6 194.3 73.1 187.1 70.1 180 67.7M302.6 204.2 303.8 196.5 304.4 188.7 304.4 180.9 303.8 173 302.6 165.2 300.8 157.5 298.4 149.8 295.5 142.3 291.9 135 287.8 128 283.2 121.1 278.1 114.6 272.5 108.4 266.5 102.5 260 97 253.2 91.9 246 87.3 238.5 83 230.6 79.3 222.6 76.1 214.3 73.3 205.9 71.1 197.3 69.4 188.7 68.3 180 67.7M264.2 87.6 258.7 83.1 252.8 79 246.6 75.5 240 72.5 233.2 69.9 226.1 67.9 218.7 66.5 211.2 65.6 203.6 65.3 195.8 65.5 187.9 66.3 180 67.7M213.7 59.7 209.2 59.1 204.5 59.1 199.8 59.6 194.9 60.8 190 62.5 180 67.7"/>
+    <symbol id="i-key" viewBox="0 0 24 24"><circle cx="7.5" cy="15.5" r="3.5"/><path d="M10 13l9-9M16 7l3 3M13.5 9.5l2 2"/></symbol>
+    <symbol id="i-route" viewBox="0 0 24 24"><circle cx="6" cy="19" r="2.5"/><circle cx="18" cy="5" r="2.5"/><path d="M8.5 19H15a3 3 0 000-6H9a3 3 0 010-6h6.5"/></symbol>
+    <symbol id="i-plug" viewBox="0 0 24 24"><path d="M9 3v5M15 3v5M6 8h12v3a6 6 0 01-12 0V8zM12 17v4"/></symbol>
+    <symbol id="i-power" viewBox="0 0 24 24"><path d="M12 3v9"/><path d="M6.86 6.87a8 8 0 1 0 10.28 0"/></symbol>
+    <symbol id="i-pulse" viewBox="0 0 24 24"><path d="M3 12h4l2.5-6.5 4 13 2.5-6.5H21"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
+    <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
+    <symbol id="i-copy" viewBox="0 0 24 24"><rect x="9" y="9" width="11" height="11" rx="3"/><path d="M5 15V7a3 3 0 013-3h8"/></symbol>
+    <symbol id="i-chev" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></symbol>
+    <symbol id="i-logo" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10.2"/><path d="M8.6 15.4l6.8-6.8"/><path d="M7.5 12.2l-1.4 1.4a2.4 2.4 0 003.4 3.4l1.4-1.4M16.5 11.8l1.4-1.4a2.4 2.4 0 00-3.4-3.4l-1.4 1.4"/></symbol>
+  </defs>
+</svg>
+
 <div id="expired" hidden>Sesi panel habis atau panel sudah ditutup.<br>Jalankan <b>termux-mcp ui</b> lagi dan buka link barunya.</div>
-<main>
-  <header>
-    <h1>termux-mcp</h1>
-    <p>Hubungkan Claude ke terminal di perangkat ini.</p>
+
+<div class="app">
+  <header class="top">
+    <button class="icon-btn invisible" id="back" aria-label="Kembali"><svg class="ico" viewBox="0 0 24 24"><use href="#i-chev"/></svg></button>
+    <div class="brand"><svg class="logo" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-logo"/></svg><span>TermuxMCP</span></div>
+    <span></span>
   </header>
 
-  <section id="s-status">
-    <div class="status">
-      <div class="dot" id="dot"></div>
-      <div class="grow"><b id="st-title">Memuat...</b><small id="st-sub"></small></div>
-    </div>
-    <div class="chiprow" id="url-row" hidden>
-      <div class="chip" id="url-chip"></div>
-      <button class="small" id="url-copy">Salin</button>
-    </div>
-    <button class="primary wide" id="power">Nyalakan server</button>
-  </section>
+  <main>
+    <!-- 1. Selamat datang -->
+    <section class="screen">
+      <div class="hero hero-xl" data-hero="globe"></div>
+      <h1>Hubungkan Claude ke Termux</h1>
+      <p class="lead">Siapkan jembatan MCP di perangkat ini dalam beberapa langkah singkat.</p>
+      <div class="actions"><button class="cta" data-next>Mulai</button></div>
+    </section>
 
-  <section id="s-token">
-    <h2>1 · Token</h2>
-    <p class="sub">Kunci rahasia supaya hanya Claude lu yang bisa masuk. Jangan dibagikan.</p>
-    <div class="banner" id="stale" hidden>
-      Token baru belum dipakai server yang sedang jalan.
-      <div><button class="small primary" id="restart">Mulai ulang server</button></div>
-    </div>
-    <div class="chip mute" id="token-chip">••••••••••••••••••••</div>
-    <div class="row mt10">
-      <button class="small" id="tok-show">Tampilkan</button>
-      <button class="small" id="tok-copy">Salin</button>
-      <button class="small danger" id="tok-new">Buat baru</button>
-    </div>
-  </section>
-
-  <section id="s-tunnel">
-    <h2>2 · Tunnel</h2>
-    <p class="sub">Claude mengakses perangkat lu lewat alamat publik. Pilih cara membuatnya.</p>
-    <div class="seg" id="seg">
-      <button data-p="cloudflare">Cloudflare</button>
-      <button data-p="ngrok">ngrok</button>
-    </div>
-
-    <div id="pn-cloudflare">
-      <p class="note">Tanpa akun, langsung jalan. Alamat berubah setiap server dinyalakan ulang, jadi konektor di Claude perlu diperbarui.</p>
-      <p class="note" id="cf-state"></p>
-      <div id="cf-install" hidden>
-        <div class="chiprow"><div class="chip" id="cf-cmd"></div><button class="small" id="cf-copy">Salin</button></div>
+    <!-- 2. Token -->
+    <section class="screen" hidden>
+      <div class="hero hero-sm" data-hero="orb:key"></div>
+      <h1>Amankan Akses</h1>
+      <p class="lead">Token adalah kunci rahasia. Hanya Claude lu yang boleh memegangnya.</p>
+      <div class="body">
+        <div class="banner" id="stale" hidden>Token baru belum dipakai server yang sedang jalan.<br><button class="ghost sm" id="restart">Mulai ulang server</button></div>
+        <div class="field"><div class="fx"><span class="k">Token</span><span class="v mute" id="token-v">••••••••••••••••••••</span></div></div>
+        <div class="trio">
+          <button class="ghost" id="tok-show">Tampilkan</button>
+          <button class="ghost" id="tok-copy">Salin</button>
+          <button class="ghost warn" id="tok-new">Buat baru</button>
+        </div>
       </div>
-    </div>
+      <div class="actions"><button class="cta" data-next>Lanjut</button></div>
+    </section>
 
-    <div id="pn-ngrok" hidden>
-      <p class="note">Alamat tetap, cukup diisi sekali di Claude. Perlu akun ngrok gratis.</p>
-      <p class="note" id="ng-state"></p>
-      <div id="ng-missing" hidden class="note">Pasang ngrok dulu dari ngrok.com/download.</div>
-      <label class="label" for="ng-token">Authtoken (dashboard.ngrok.com, menu Your Authtoken)</label>
-      <input id="ng-token" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Tempel authtoken">
-      <label class="label" for="ng-domain">Domain tetap (menu Domains di dashboard)</label>
-      <input id="ng-domain" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="nama-lu.ngrok-free.dev">
-      <div class="mt12"><button class="small primary" id="ng-save">Simpan</button></div>
-    </div>
-  </section>
+    <!-- 3. Tunnel -->
+    <section class="screen" hidden>
+      <div class="hero hero-sm" data-hero="orb:route"></div>
+      <h1>Pilih Jalur</h1>
+      <p class="lead">Claude menjangkau perangkat lu lewat alamat publik.</p>
+      <div class="body">
+        <div class="seg" id="seg"><button data-p="cloudflare">Cloudflare</button><button data-p="ngrok">ngrok</button></div>
 
-  <section id="s-guide">
-    <h2>3 · Pasang di Claude</h2>
-    <p class="sub">Dilakukan sekali. Tombol Salin mengisi clipboard.</p>
-    <ol class="steps">
-      <li>Buka app Claude, masuk ke pengaturan Konektor, lalu pilih tambah konektor kustom.</li>
-      <li>Isi alamat server:
-        <div class="chiprow"><div class="chip mute" id="g-url">Nyalakan server dulu</div><button class="small" id="g-url-copy">Salin</button></div>
-      </li>
-      <li>Tambahkan header dengan nama ini:
-        <div class="chiprow"><div class="chip">x-api-key</div><button class="small" id="g-name-copy">Salin</button></div>
-      </li>
-      <li>Isi nilai header dengan token lu:
-        <div class="chiprow"><div class="chip mute">Token dari langkah 1</div><button class="small" id="g-tok-copy">Salin</button></div>
-      </li>
-      <li>Simpan, lalu aktifkan konektornya di percakapan.</li>
-    </ol>
-  </section>
+        <div id="pn-cloudflare">
+          <p class="note">Tanpa akun, langsung jalan. Alamat berubah setiap server dinyalakan ulang, jadi konektor di Claude perlu diperbarui.</p>
+          <p class="note" id="cf-state"></p>
+          <div class="field" id="cf-install" hidden>
+            <div class="fx"><span class="k">Jalankan di terminal</span><span class="v" id="cf-cmd"></span></div>
+            <button class="copy" id="cf-copy" aria-label="Salin perintah"><svg class="ico" viewBox="0 0 24 24"><use href="#i-copy"/></svg></button>
+          </div>
+        </div>
 
-  <section id="s-log">
-    <details>
-      <summary>Log server</summary>
-      <pre class="chip" id="log">belum ada log</pre>
-    </details>
-  </section>
-</main>
-<div id="toast"></div>
+        <div id="pn-ngrok" hidden>
+          <p class="note">Alamat tetap, cukup diisi sekali di Claude. Perlu akun ngrok gratis.</p>
+          <p class="note" id="ng-state"></p>
+          <p class="note bad" id="ng-missing" hidden>ngrok belum terpasang. Pasang dulu dari ngrok.com/download.</p>
+          <label class="lab" for="ng-token">Authtoken</label>
+          <input class="inp" id="ng-token" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Dari dashboard.ngrok.com">
+          <label class="lab" for="ng-domain">Domain tetap</label>
+          <input class="inp" id="ng-domain" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="nama-lu.ngrok-free.dev">
+          <div class="trio"><span></span><button class="ghost" id="ng-save">Simpan</button><span></span></div>
+        </div>
+      </div>
+      <div class="actions"><button class="cta" data-next>Lanjut</button></div>
+    </section>
+
+    <!-- 4. Nyalakan server -->
+    <section class="screen" hidden>
+      <h1 class="gap-top" id="p-title">Nyalakan Server</h1>
+      <p class="lead" id="p-lead">Ketuk tombol power untuk memulai.</p>
+      <div data-btn="power"></div>
+      <div class="status"><i class="dot" id="p-dot"></i><span id="p-state">Server mati</span></div>
+      <div class="body" id="p-url" hidden>
+        <div class="field"><div class="fx"><span class="k">Alamat server</span><span class="v" id="p-url-v"></span></div>
+          <button class="copy" data-copy="url" aria-label="Salin alamat"><svg class="ico" viewBox="0 0 24 24"><use href="#i-copy"/></svg></button></div>
+      </div>
+      <details><summary>Log server</summary><pre id="log">belum ada log</pre></details>
+      <div class="actions"><button class="cta" id="cta-power" data-next>Lanjut</button></div>
+    </section>
+
+    <!-- 5. Pasang di Claude -->
+    <section class="screen" hidden>
+      <div class="hero hero-sm" data-hero="orb:plug"></div>
+      <h1>Pasang di Claude</h1>
+      <p class="lead">Dilakukan sekali di pengaturan konektor kustom.</p>
+      <div class="body">
+        <div class="field"><div class="fx"><span class="k">Alamat server</span><span class="v mute" id="f-url">Nyalakan server dulu</span></div>
+          <button class="copy" data-copy="url" aria-label="Salin alamat"><svg class="ico" viewBox="0 0 24 24"><use href="#i-copy"/></svg></button></div>
+        <div class="field"><div class="fx"><span class="k">Nama header</span><span class="v">x-api-key</span></div>
+          <button class="copy" data-copy="hname" aria-label="Salin nama header"><svg class="ico" viewBox="0 0 24 24"><use href="#i-copy"/></svg></button></div>
+        <div class="field"><div class="fx"><span class="k">Nilai header</span><span class="v mute">Token dari langkah 2</span></div>
+          <button class="copy" data-copy="token" aria-label="Salin token"><svg class="ico" viewBox="0 0 24 24"><use href="#i-copy"/></svg></button></div>
+        <ol class="steps">
+          <li>1. Buka app Claude, masuk ke Pengaturan, lalu Konektor.</li>
+          <li>2. Pilih tambah konektor kustom dan isi tiga nilai di atas.</li>
+          <li>3. Simpan, lalu aktifkan konektornya di chat baru.</li>
+        </ol>
+      </div>
+      <div class="actions"><button class="cta" data-next>Lanjut ke uji koneksi</button></div>
+    </section>
+
+    <!-- 6. Uji koneksi -->
+    <section class="screen" hidden>
+      <div class="hero hero-md" data-hero="globe"></div>
+      <h1 id="t-title">Uji Koneksi</h1>
+      <p class="lead" id="t-lead">Pastikan koneksi MCP lu berjalan dengan baik</p>
+      <ul class="checks" id="checks" hidden></ul>
+      <div class="actions"><div data-btn="test"></div></div>
+    </section>
+  </main>
+
+  <footer class="foot"><nav class="dots" id="dots" aria-label="Langkah"></nav></footer>
+</div>
+<div id="toast" role="status"></div>
 
 <script nonce="__NONCE__">
 (function(){
+  'use strict';
   var $ = function(s){ return document.querySelector(s); };
-  var S = null, sel = null, tokenCache = null, tokenShown = false, busy = false, toastTimer = null;
+  var $$ = function(s){ return Array.prototype.slice.call(document.querySelectorAll(s)); };
+  var TOTAL = 6;
+  var S = null, sel = null, tokenCache = null, tokenShown = false, busy = false, step = 0;
+  var T = {phase: 'idle'}, toastTimer = null;
 
+  function store(key, val){
+    try { if (val === undefined) return localStorage.getItem(key); localStorage.setItem(key, val); } catch (e) {}
+    return null;
+  }
+
+  /* ---------- ilustrasi ---------- */
+  var ORBITS = [[-28,166,60,.6],[34,166,60,3.7],[90,152,46,2.3],[-64,170,72,5.1],[8,140,36,1.1]];
+
+  function orbitsSVG(scale){
+    var g = ORBITS.map(function(o){
+      var cx = (180 + o[1] * Math.cos(o[3])).toFixed(1), cy = (180 + o[2] * Math.sin(o[3])).toFixed(1);
+      return '<g transform="rotate(' + o[0] + ' 180 180)">' +
+        '<ellipse class="orbit-glow" cx="180" cy="180" rx="' + o[1] + '" ry="' + o[2] + '"/>' +
+        '<ellipse class="orbit" cx="180" cy="180" rx="' + o[1] + '" ry="' + o[2] + '"/>' +
+        '<circle class="nglow" cx="' + cx + '" cy="' + cy + '" r="8"/><circle class="node" cx="' + cx + '" cy="' + cy + '" r="2.6"/></g>';
+    }).join('');
+    var inner = '<g class="orbits">' + g + '</g>';
+    return scale === 1 ? inner : '<g transform="translate(180 180) scale(' + scale + ') translate(-180 -180)">' + inner + '</g>';
+  }
+
+  function globeSVG(){
+    return '<svg viewBox="0 0 360 360" aria-hidden="true">' +
+      '<circle cx="180" cy="180" r="178" fill="url(#g-halo)"/>' +
+      '<g clip-path="url(#clip-globe)">' +
+        '<circle cx="180" cy="180" r="125" fill="url(#g-sphere)"/>' +
+        '<use href="#grat-path"/><use href="#land-path"/>' +
+        '<circle cx="180" cy="180" r="125" fill="url(#g-shade)"/>' +
+        '<circle cx="180" cy="180" r="125" fill="url(#g-rim)"/>' +
+      '</g>' + orbitsSVG(1) + '</svg>';
+  }
+
+  function orbSVG(icon){
+    var use = function(extra){
+      return '<use href="#i-' + icon + '" x="146" y="146" width="68" height="68" fill="none" stroke-linecap="round" stroke-linejoin="round" ' + extra + '/>';
+    };
+    return '<svg viewBox="0 0 360 360" aria-hidden="true">' +
+      '<circle cx="180" cy="180" r="170" fill="url(#g-halo)"/>' +
+      '<circle cx="180" cy="180" r="84" fill="url(#g-sphere)"/>' +
+      '<g clip-path="url(#clip-orb)"><g transform="translate(180 180) scale(.672) translate(-180 -180)"><use href="#grat-path"/></g>' +
+        '<circle cx="180" cy="180" r="84" fill="url(#g-shade)"/><circle cx="180" cy="180" r="84" fill="url(#g-rim)"/></g>' +
+      orbitsSVG(.8) +
+      '<g class="ic-float">' + use('stroke="#38e1ff" stroke-opacity=".4" stroke-width="3.6"') + use('stroke="#fff" stroke-width="1.7"') + '</g>' +
+      '</svg>';
+  }
+
+  function powerHTML(id, icon, label){
+    return '<button class="power" id="' + id + '" aria-label="' + label + '"><span class="halo"></span>' +
+      '<svg viewBox="0 0 120 120" aria-hidden="true"><circle class="disc" cx="60" cy="60" r="50"/>' +
+      '<circle class="ring-glow" cx="60" cy="60" r="50"/><circle class="ring" cx="60" cy="60" r="50"/>' +
+      '<use class="glyph" href="#i-' + icon + '" x="35" y="35" width="50" height="50"/></svg></button>';
+  }
+
+  function build(){
+    $$('.hero').forEach(function(el){
+      var kind = el.getAttribute('data-hero');
+      el.innerHTML = kind === 'globe' ? globeSVG() : orbSVG(kind.split(':')[1]);
+    });
+    $$('[data-btn]').forEach(function(el){
+      var k = el.getAttribute('data-btn');
+      el.innerHTML = k === 'power' ? powerHTML('power', 'power', 'Nyalakan atau matikan server')
+                                    : powerHTML('tester', 'pulse', 'Uji koneksi');
+    });
+    var dots = $('#dots');
+    for (var i = 0; i < TOTAL; i++){
+      var b = document.createElement('button');
+      b.className = 'dot-nav'; b.setAttribute('aria-label', 'Langkah ' + (i + 1)); b.setAttribute('data-i', i);
+      dots.appendChild(b);
+    }
+  }
+
+  /* ---------- util ---------- */
   function toast(msg){
     var t = $('#toast'); t.textContent = msg; t.classList.add('show');
     clearTimeout(toastTimer); toastTimer = setTimeout(function(){ t.classList.remove('show'); }, 2600);
   }
 
   function api(path, body){
-    var opt = {credentials:'same-origin'};
+    var opt = {credentials: 'same-origin'};
     if (body !== undefined){
       opt.method = 'POST';
-      opt.headers = {'Content-Type':'application/json','X-Panel':'1'};
+      opt.headers = {'Content-Type': 'application/json', 'X-Panel': '1'};
       opt.body = JSON.stringify(body);
     }
     return fetch(path, opt).then(function(r){
       return r.json().catch(function(){ return {}; }).then(function(d){
         if (r.status === 401 || r.status === 403){ $('#expired').hidden = false; }
-        return {ok:r.ok, data:d};
+        return {ok: r.ok, data: d};
       });
     });
   }
@@ -227,7 +390,7 @@ pre{margin:10px 0 0;white-space:pre-wrap;word-break:break-all;max-height:240px;o
   function copy(text, okMsg){
     function fallback(){
       var ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta);
-      ta.select(); var ok = false; try { ok = document.execCommand('copy'); } catch(e){}
+      ta.select(); var ok = false; try { ok = document.execCommand('copy'); } catch (e) {}
       document.body.removeChild(ta); toast(ok ? okMsg : 'Gagal menyalin');
     }
     if (navigator.clipboard && window.isSecureContext){
@@ -240,69 +403,110 @@ pre{margin:10px 0 0;white-space:pre-wrap;word-break:break-all;max-height:240px;o
     return api('/api/token').then(function(r){ tokenCache = r.data.token || null; return tokenCache; });
   }
 
-  function defaultProvider(){
-    if (S.ngrok.installed && S.ngrok.authtoken && S.ngrok.domain) return 'ngrok';
-    return 'cloudflare';
+  function providerReady(p){
+    if (!S) return false;
+    if (p === 'ngrok') return S.ngrok.installed && S.ngrok.authtoken;
+    return S.cloudflare.installed;
+  }
+
+  /* ---------- navigasi ---------- */
+  function go(i){
+    step = Math.max(0, Math.min(TOTAL - 1, i));
+    var screens = $$('.screen');
+    screens.forEach(function(s, idx){ s.hidden = idx !== step; });
+    var cur = screens[step];
+    cur.classList.remove('enter'); void cur.offsetWidth; cur.classList.add('enter');
+    $$('.dot-nav').forEach(function(d, idx){ d.classList.toggle('on', idx === step); });
+    $('#back').classList.toggle('invisible', step === 0);
+    if (step === TOTAL - 1) store('onboarded', '1');
+    window.scrollTo(0, 0);
+    render();
+  }
+
+  /* ---------- tampilan ---------- */
+  function setPower(btn, cls){
+    ['on', 'busy', 'ok', 'fail'].forEach(function(c){ btn.classList.toggle(c, cls.indexOf(c) >= 0); });
+  }
+
+  function renderChecks(){
+    var ul = $('#checks');
+    if (!T.local && !T.pub){ ul.hidden = true; return; }
+    ul.hidden = false; ul.textContent = '';
+    [['Server lokal', T.local], ['Jalur publik', T.pub]].forEach(function(p){
+      var r = p[1]; if (!r) return;
+      var li = document.createElement('li');
+      li.className = r.ok ? 'ok' : (r.skipped ? 'skip' : 'bad');
+      var mark = document.createElement('span'); mark.className = 'mark'; mark.textContent = r.ok ? '✓' : (r.skipped ? '–' : '✕');
+      var box = document.createElement('span');
+      var b = document.createElement('b'); b.textContent = p[0] + (r.ok && r.ms != null ? ' · ' + r.ms + ' ms' : '');
+      box.appendChild(b);
+      if (!r.ok){ box.appendChild(document.createTextNode(r.detail || 'Gagal')); }
+      li.appendChild(mark); li.appendChild(box); ul.appendChild(li);
+    });
   }
 
   function render(){
     if (!S) return;
     if (S.running && S.provider) sel = S.provider;
-    if (!sel) sel = localStorage.getItem('provider') || defaultProvider();
+    if (!sel) sel = store('provider') || (S.ngrok.installed && S.ngrok.authtoken && S.ngrok.domain ? 'ngrok' : 'cloudflare');
 
-    // status
-    var dot = $('#dot'), title = $('#st-title'), sub = $('#st-sub');
-    dot.className = 'dot';
-    if (S.running && S.url){ dot.classList.add('ok'); title.textContent = 'Server aktif'; sub.textContent = 'Siap dihubungkan dari Claude lewat ' + (S.provider === 'ngrok' ? 'ngrok' : 'Cloudflare') + '.'; }
-    else if (S.running && S.starting){ dot.classList.add('warn'); title.textContent = 'Menyalakan tunnel...'; sub.textContent = 'Biasanya beberapa detik.'; }
-    else if (S.running && !S.provider){ dot.classList.add('warn'); title.textContent = 'Aktif, hanya lokal'; sub.textContent = 'Tanpa tunnel, Claude belum bisa menjangkau server ini.'; }
-    else if (S.running){ dot.classList.add('bad'); title.textContent = 'Tunnel belum tersambung'; sub.textContent = 'Lihat log di bawah, atau matikan lalu nyalakan lagi.'; }
-    else if (S.port_busy){ dot.classList.add('bad'); title.textContent = 'Port ' + S.port + ' dipakai proses lain'; sub.textContent = 'Mungkin server termux-mcp yang dijalankan dari terminal. Matikan dulu, lalu nyalakan dari sini.'; }
-    else { title.textContent = 'Server mati'; sub.textContent = 'Pilih tunnel di bawah, lalu nyalakan.'; }
-
-    $('#url-row').hidden = !S.url;
-    $('#url-chip').textContent = S.url || '';
-    var power = $('#power');
-    power.textContent = S.running ? 'Matikan server' : 'Nyalakan server';
-    power.classList.toggle('primary', !S.running);
-    power.disabled = busy || (!S.running && S.port_busy);
-
-    // token
+    // langkah 2: token
     $('#stale').hidden = !S.token_stale;
-    var chip = $('#token-chip');
-    chip.textContent = tokenShown && tokenCache ? tokenCache : '••••••••••••••••••••';
-    chip.classList.toggle('mute', !tokenShown);
+    var tv = $('#token-v');
+    tv.textContent = tokenShown && tokenCache ? tokenCache : '••••••••••••••••••••';
+    tv.classList.toggle('mute', !tokenShown);
     $('#tok-show').textContent = tokenShown ? 'Sembunyikan' : 'Tampilkan';
 
-    // tunnel
+    // langkah 3: tunnel
     var seg = $('#seg'); seg.classList.toggle('locked', S.running);
-    Array.prototype.forEach.call(seg.querySelectorAll('button'), function(b){ b.classList.toggle('on', b.dataset.p === sel); });
+    $$('#seg button').forEach(function(b){ b.classList.toggle('on', b.getAttribute('data-p') === sel); });
     $('#pn-cloudflare').hidden = sel !== 'cloudflare';
     $('#pn-ngrok').hidden = sel !== 'ngrok';
-
-    var cfs = $('#cf-state');
-    cfs.textContent = S.cloudflare.installed ? 'cloudflared terpasang.' : 'cloudflared belum terpasang. Jalankan perintah ini di terminal, lalu muat ulang halaman:';
-    cfs.className = 'note ' + (S.cloudflare.installed ? 'ok' : '');
+    var cf = $('#cf-state');
+    cf.textContent = S.cloudflare.installed ? 'cloudflared terpasang.' : 'cloudflared belum terpasang. Jalankan perintah ini di terminal, lalu kembali ke sini:';
+    cf.className = 'note ' + (S.cloudflare.installed ? 'ok' : '');
     $('#cf-install').hidden = S.cloudflare.installed;
     $('#cf-cmd').textContent = S.install.cloudflare;
-
-    var ngs = $('#ng-state'), parts = [];
+    var parts = [];
     $('#ng-missing').hidden = S.ngrok.installed;
     if (S.ngrok.installed){
       parts.push(S.ngrok.authtoken ? 'authtoken tersimpan' : 'authtoken belum diisi');
-      parts.push(S.ngrok.domain ? 'domain: ' + S.ngrok.domain : 'domain belum diisi (alamat acak)');
+      parts.push(S.ngrok.domain ? 'domain: ' + S.ngrok.domain : 'domain belum diisi');
     }
-    ngs.textContent = parts.join(' · ');
-    ngs.className = 'note ' + (S.ngrok.installed && S.ngrok.authtoken && S.ngrok.domain ? 'ok' : '');
+    var ns = $('#ng-state'); ns.textContent = parts.join(' · ');
+    ns.className = 'note ' + (S.ngrok.installed && S.ngrok.authtoken && S.ngrok.domain ? 'ok' : '');
     $('#ng-save').disabled = busy || !S.ngrok.installed;
 
-    // panduan
-    var g = $('#g-url');
-    g.textContent = S.url || 'Nyalakan server dulu';
-    g.classList.toggle('mute', !S.url);
-
-    // log
+    // langkah 4: server
+    var title, lead, dotc = '', state, ready = providerReady(sel);
+    if (S.running && S.url){ title = 'Server Aktif'; lead = 'Terhubung lewat ' + (S.provider === 'ngrok' ? 'ngrok' : 'Cloudflare') + '. Ketuk tombol untuk mematikan.'; state = 'Siap dihubungkan'; dotc = 'ok'; }
+    else if (S.running && S.starting){ title = 'Menyalakan...'; lead = 'Membuka tunnel, biasanya beberapa detik.'; state = 'Menyambungkan tunnel'; dotc = 'warn'; }
+    else if (S.running && !S.provider){ title = 'Aktif, Lokal'; lead = 'Tanpa tunnel, Claude belum bisa menjangkau server ini.'; state = 'Hanya lokal'; dotc = 'warn'; }
+    else if (S.running){ title = 'Tunnel Terputus'; lead = 'Lihat log di bawah, atau matikan lalu nyalakan lagi.'; state = 'Tunnel belum tersambung'; dotc = 'bad'; }
+    else if (S.port_busy){ title = 'Port Terpakai'; lead = 'Port ' + S.port + ' dipakai proses lain. Matikan server lama dari terminal dulu.'; state = 'Tidak bisa dinyalakan'; dotc = 'bad'; }
+    else if (!ready){ title = 'Jalur Belum Siap'; lead = 'Lengkapi pengaturan tunnel di langkah 3 sebelum menyalakan server.'; state = 'Server mati'; }
+    else { title = 'Nyalakan Server'; lead = 'Ketuk tombol power untuk memulai.'; state = 'Server mati'; }
+    $('#p-title').textContent = title; $('#p-lead').textContent = lead; $('#p-state').textContent = state;
+    $('#p-dot').className = 'dot ' + dotc;
+    setPower($('#power'), (S.running && S.url ? ['on'] : []).concat(busy || S.starting ? ['busy'] : []));
+    $('#p-url').hidden = !S.url; $('#p-url-v').textContent = S.url || '';
     $('#log').textContent = S.log || 'belum ada log';
+    $('#cta-power').disabled = !S.running;
+
+    // langkah 5: panduan
+    var fu = $('#f-url'); fu.textContent = S.url || 'Nyalakan server dulu'; fu.classList.toggle('mute', !S.url);
+
+    // langkah 6: uji koneksi
+    var tt = $('#t-title'), tl = $('#t-lead'), tb = $('#tester'), g = tb.querySelector('.glyph');
+    if (T.phase === 'testing'){ tt.textContent = 'Menguji...'; tl.textContent = 'Memeriksa server lokal dan jalur publik.'; setPower(tb, ['busy']); g.setAttribute('href', '#i-pulse'); }
+    else if (T.phase === 'ok'){ tt.textContent = 'Koneksi Aman'; tl.textContent = 'Jalur publik membalas dalam ' + (T.pub && T.pub.ms) + ' ms. Claude siap dihubungkan.'; setPower(tb, ['ok']); g.setAttribute('href', '#i-check'); }
+    else if (T.phase === 'fail'){ tt.textContent = 'Ada Masalah'; tl.textContent = T.message || 'Uji koneksi gagal.'; setPower(tb, ['fail']); g.setAttribute('href', '#i-x'); }
+    else {
+      tt.textContent = 'Uji Koneksi';
+      tl.textContent = S.running ? 'Pastikan koneksi MCP lu berjalan dengan baik' : 'Server belum menyala. Nyalakan dulu di langkah 4.';
+      setPower(tb, []); g.setAttribute('href', '#i-pulse');
+    }
+    renderChecks();
   }
 
   function refresh(){
@@ -323,34 +527,50 @@ pre{margin:10px 0 0;white-space:pre-wrap;word-break:break-all;max-height:240px;o
     });
   }
 
+  build();  // harus sebelum handler: tombol power/uji dibuat di sini
+
+  /* ---------- aksi ---------- */
+  $$('[data-next]').forEach(function(b){ b.onclick = function(){ go(step + 1); }; });
+  $('#back').onclick = function(){ go(step - 1); };
+  $('#dots').onclick = function(e){
+    var b = e.target.closest('.dot-nav'); if (b) go(parseInt(b.getAttribute('data-i'), 10));
+  };
+
   $('#power').onclick = function(){
-    if (S.running){ act(function(){ return post('/api/stop', {}, 'Server dimatikan'); }); }
-    else { act(function(){ return post('/api/start', {tunnel: sel}, 'Server dinyalakan'); }); }
+    if (!S) return;
+    if (S.running){ act(function(){ return post('/api/stop', {}, 'Server dimatikan'); }); return; }
+    if (!providerReady(sel)){ toast('Lengkapi pengaturan tunnel dulu'); go(2); return; }
+    T = {phase: 'idle'};
+    act(function(){ return post('/api/start', {tunnel: sel}, 'Server dinyalakan'); });
   };
 
   $('#restart').onclick = function(){
     var p = S.provider || sel;
-    act(function(){ return post('/api/stop', {}).then(function(ok){ return ok && post('/api/start', {tunnel: p}, 'Server dimulai ulang'); }); });
+    act(function(){
+      return post('/api/stop', {}).then(function(ok){ return ok && post('/api/start', {tunnel: p}, 'Server dimulai ulang'); });
+    });
   };
 
   $('#seg').onclick = function(e){
     var b = e.target.closest('button'); if (!b || S.running) return;
-    sel = b.dataset.p; localStorage.setItem('provider', sel); render();
+    sel = b.getAttribute('data-p'); store('provider', sel); render();
   };
 
-  $('#url-copy').onclick = function(){ if (S && S.url) copy(S.url, 'Alamat disalin'); };
-  $('#g-url-copy').onclick = function(){ if (S && S.url) copy(S.url, 'Alamat disalin'); else toast('Nyalakan server dulu'); };
-  $('#g-name-copy').onclick = function(){ copy('x-api-key', 'Nama header disalin'); };
+  $$('[data-copy]').forEach(function(b){
+    b.onclick = function(){
+      var what = b.getAttribute('data-copy');
+      if (what === 'url'){ if (S && S.url) copy(S.url, 'Alamat disalin'); else toast('Nyalakan server dulu'); }
+      else if (what === 'hname'){ copy('x-api-key', 'Nama header disalin'); }
+      else { ensureToken().then(function(t){ if (t) copy(t, 'Token disalin'); }); }
+    };
+  });
   $('#cf-copy').onclick = function(){ if (S) copy(S.install.cloudflare, 'Perintah disalin'); };
 
   $('#tok-show').onclick = function(){
     if (tokenShown){ tokenShown = false; render(); return; }
     ensureToken().then(function(){ tokenShown = true; render(); });
   };
-  function copyToken(){ ensureToken().then(function(t){ if (t) copy(t, 'Token disalin'); }); }
-  $('#tok-copy').onclick = copyToken;
-  $('#g-tok-copy').onclick = copyToken;
-
+  $('#tok-copy').onclick = function(){ ensureToken().then(function(t){ if (t) copy(t, 'Token disalin'); }); };
   $('#tok-new').onclick = function(){
     if (!window.confirm('Buat token baru? Token lama langsung tidak berlaku dan konektor di Claude harus diisi ulang.')) return;
     act(function(){
@@ -369,7 +589,23 @@ pre{margin:10px 0 0;white-space:pre-wrap;word-break:break-all;max-height:240px;o
     });
   };
 
-  refresh();
+  $('#tester').onclick = function(){
+    if (!S) return;
+    if (!S.running){ toast('Nyalakan server dulu'); go(3); return; }
+    if (T.phase === 'testing') return;
+    T = {phase: 'testing'}; render();
+    api('/api/test', {}).then(function(r){
+      if (!r.ok){ T = {phase: 'fail', message: r.data.error || 'Uji koneksi gagal.'}; }
+      else { T = {phase: r.data.ok ? 'ok' : 'fail', message: r.data.message, local: r.data.local, pub: r.data.public}; }
+      render();
+    }, function(){ T = {phase: 'fail', message: 'Gagal menghubungi panel.'}; render(); });
+  };
+
+  /* ---------- mulai ---------- */
+  go(0);
+  refresh().then(function(){
+    if (store('onboarded') === '1' && S) go(S.running ? TOTAL - 1 : 3);
+  });
   setInterval(function(){ if (!document.hidden && !busy) refresh(); }, 2500);
   document.addEventListener('visibilitychange', function(){ if (!document.hidden) refresh(); });
 })();

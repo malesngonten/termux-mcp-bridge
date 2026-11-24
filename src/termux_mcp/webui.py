@@ -354,6 +354,7 @@ def make_handler(panel: Panel, ui_port: int):
                 if not self._guard(need_session=False):
                     return
                 m = re.search(r"(?:^|&)k=([^&]+)", query)
+                cookie_hdr = None
                 if m:
                     sid = panel.try_code(m.group(1))
                     if not sid:
@@ -362,14 +363,14 @@ def make_handler(panel: Panel, ui_port: int):
                         return self._send(code, "Kode salah atau kedaluwarsa. Jalankan ulang: termux-mcp ui".encode(),
                                           "text/plain; charset=utf-8")
                     panel.notify("Browser tersambung")
-                    return self._send(302, b"", "text/plain", {
-                        "Location": "/", "Set-Cookie": f"{COOKIE}={sid}; HttpOnly; SameSite=Strict; Path=/"})
-                if not panel.valid_session(self._session()):
+                    # Tanpa redirect: alamat ?k=... tetap terlihat di address bar
+                    cookie_hdr = {"Set-Cookie": f"{COOKIE}={sid}; HttpOnly; SameSite=Strict; Path=/"}
+                elif not panel.valid_session(self._session()):
                     return self._send(403, "Buka panel lewat link yang dicetak di terminal (termux-mcp ui).".encode(),
                                       "text/plain; charset=utf-8")
                 nonce = secrets.token_urlsafe(12)
                 html = PAGE_FILE.read_text().replace("__NONCE__", nonce)
-                return self._send(200, html.encode(), "text/html; charset=utf-8", nonce=nonce)
+                return self._send(200, html.encode(), "text/html; charset=utf-8", cookie_hdr, nonce=nonce)
             if not self._guard():
                 return
             if path == "/api/status":

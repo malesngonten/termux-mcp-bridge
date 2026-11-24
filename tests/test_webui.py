@@ -89,7 +89,7 @@ class HttpTests(PanelBase):
 
     def login(self):
         r, _ = self.req("GET", f"/?k={self.panel.code}")
-        self.assertEqual(r.status, 302)
+        self.assertEqual(r.status, 200)
         cookie = r.getheader("Set-Cookie").split(";")[0]
         return {"Cookie": cookie}
 

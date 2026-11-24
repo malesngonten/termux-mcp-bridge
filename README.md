@@ -46,16 +46,15 @@ Cara termudah untuk pemula: semua langkah (token, tunnel, nyalakan server, pandu
 termux-mcp ui
 ```
 
-Buka link yang dicetak di terminal (berisi kode rahasia) di browser HP. Panel berbentuk onboarding enam langkah:
+Buka link yang dicetak di terminal (berisi kode rahasia) di browser HP. Panel berbentuk onboarding lima langkah, semuanya muat dalam satu layar tanpa scroll:
 
 1. Selamat datang.
-2. **Token**: lihat, salin, atau buat baru.
-3. **Tunnel**: Cloudflare (tanpa akun, alamat berubah tiap start) atau ngrok (alamat tetap, perlu akun gratis).
-4. **Nyalakan server** dengan tombol power; status, alamat publik, dan log tampil di situ.
-5. **Pasang di Claude**: alamat, nama header, dan token siap salin.
-6. **Uji koneksi**: mengirim handshake MCP ke server lokal lalu ke jalur publik, dan menjelaskan di mana masalahnya kalau gagal.
+2. **Pilih jalur**: Cloudflare (tanpa akun, alamat berubah tiap start) atau ngrok (alamat tetap, perlu akun gratis). Authtoken dan domain ngrok yang sudah tersimpan langsung terisi di form.
+3. **Nyalakan server** dengan tombol power; status dan alamat publik tampil di situ, log ada di tombol "Lihat log server".
+4. **Pasang di Claude**: alamat, nama header, dan token (disembunyikan, ikon mata untuk melihat) siap salin.
+5. **Uji koneksi**: mengirim handshake MCP ke server lokal lalu ke jalur publik, dan menjelaskan di mana masalahnya kalau gagal.
 
-Titik di bawah layar bisa diketuk untuk lompat antar langkah. Kalau sudah pernah selesai, panel langsung membuka langkah yang relevan.
+Titik di bawah layar bisa diketuk untuk lompat antar langkah, atau pakai "Lanjut". Kalau sudah pernah selesai, panel langsung membuka langkah yang relevan. Notifikasi muncul dari atas layar.
 Ilustrasi globe dihasilkan dari data Natural Earth 110m (domain publik) lewat `tools/gen_globe.py`.
 
 Semua yang bisa dilakukan panel tetap bisa lewat perintah (`serve`, `token`, `tunnel setup`). Panel memanggil logika yang sama.

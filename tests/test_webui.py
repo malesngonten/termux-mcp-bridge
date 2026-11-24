@@ -127,6 +127,38 @@ class HttpTests(PanelBase):
         self.assertTrue(any(e.startswith("!") and "tidak dikenal" in e for e in events))
         self.assertFalse(any(self.panel.get_token() in e or self.panel.code in e for e in events))
 
+    def _ngrok_home(self, yml: str) -> Path:
+        home = Path(self._tmp.name) / "home"
+        (home / ".config" / "ngrok").mkdir(parents=True)
+        (home / ".config" / "ngrok" / "ngrok.yml").write_text(yml)
+        return home
+
+    def test_ngrok_settings_prefill_endpoint(self):
+        home = self._ngrok_home("version: \"3\"\nagent:\n  authtoken: 2abcDEF_ghi-JKL0123456789\n")
+        with mock.patch.dict(os.environ, {"HOME": str(home)}):
+            tn.save_settings({"domain": "nama.ngrok-free.dev"})
+            r, _ = self.req("GET", "/api/ngrok")
+            self.assertEqual(r.status, 401)  # tanpa sesi ditolak
+            cookie = self.login()
+            r, body = self.req("GET", "/api/ngrok", headers=cookie)
+            data = json.loads(body)
+            self.assertEqual(data, {"authtoken": "2abcDEF_ghi-JKL0123456789", "domain": "nama.ngrok-free.dev"})
+            r, body = self.req("GET", "/api/status", headers=cookie)  # nilai rahasia tidak ikut status
+            self.assertNotIn("2abcDEF_ghi", body.decode())
+
+    def test_ngrok_saved_authtoken_parsing(self):
+        for line, want in (('authtoken: abcDEF1234567890', "abcDEF1234567890"),
+                           ('  authtoken: "quoted_Token_123456"', "quoted_Token_123456"),
+                           ("authtoken: tok_12345678 # komentar", "tok_12345678")):
+            home = Path(self._tmp.name) / f"h{abs(hash(line))}"
+            (home / ".config" / "ngrok").mkdir(parents=True)
+            (home / ".config" / "ngrok" / "ngrok.yml").write_text(f"agent:\n{line}\n")
+            with mock.patch.dict(os.environ, {"HOME": str(home)}):
+                self.assertEqual(tn.ngrok_saved_authtoken(), want)
+        with mock.patch.dict(os.environ, {"HOME": str(Path(self._tmp.name) / "kosong")}):
+            self.assertEqual(tn.ngrok_saved_authtoken(), "")
+            self.assertFalse(tn.ngrok_has_authtoken())
+
     def test_host_header_checked(self):
         cookie = self.login()
         r, _ = self.req("GET", "/api/status", headers=cookie, host="evil.example.com")
@@ -412,8 +444,8 @@ class PageTests(unittest.TestCase):
         self.assertEqual(used - ids - dynamic, set())
 
     def test_every_icon_reference_exists(self):
-        ids = set(re.findall(r'\bid="(i-[a-z]+)"', self.html))
-        used = set(re.findall(r'#(i-[a-z]+)', self.html)) | {f"i-{n}" for n in ("key", "route", "plug", "power", "pulse", "check", "x")}
+        ids = set(re.findall(r'\bid="(i-[a-z-]+)"', self.html))
+        used = set(re.findall(r'#(i-[a-z-]+)', self.html)) | {f"i-{n}" for n in ("power", "pulse", "check", "x")}
         self.assertEqual(used - ids, set())
 
     def test_globe_data_present(self):
@@ -443,6 +475,22 @@ class PageTests(unittest.TestCase):
         smoke = Path(__file__).resolve().parent.parent / "tools" / "ui_smoke.js"
         r = subprocess.run([node, str(smoke)], capture_output=True, text=True, stdin=subprocess.DEVNULL, timeout=90)
         self.assertEqual(r.returncode, 0, r.stdout[-1500:] + r.stderr[-500:])
+
+    def test_onboarding_order_and_no_token_screen(self):
+        titles = re.findall(r"<h1[^>]*>([^<]+)</h1>", self.html)
+        self.assertEqual(titles, ["Hubungkan Claude ke Termux", "Pilih Jalur", "Nyalakan Server", "Pasang di Claude", "Uji Koneksi"])
+        self.assertEqual(self.html.count('<section class="screen"'), 5)
+        self.assertNotIn("Amankan Akses", self.html)
+
+    def test_token_lives_on_connect_screen_with_eye_toggle(self):
+        connect = self.html.split("<!-- 4. Pasang di Claude -->")[1].split("<!-- 5.")[0]
+        self.assertIn('id="in-token"', connect)
+        self.assertIn('data-eye="in-token"', connect)
+
+    def test_notifications_come_from_top(self):
+        css = re.search(r"#toast\{(.*?)\}", self.html, re.S).group(1)
+        self.assertIn("top:", css)
+        self.assertNotIn("bottom:", css)
 
     def test_no_external_resources(self):
         self.assertNotRegex(self.html, r'(src|href)="https?://')

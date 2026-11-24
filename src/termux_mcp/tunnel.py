@@ -82,10 +82,9 @@ def normalize_domain(domain: str | None) -> str | None:
     return d or None
 
 
-def ngrok_has_authtoken() -> bool:
-    """Cek apakah ada baris authtoken di config ngrok (isinya tidak dibaca keluar)."""
-    binary = find_ngrok()
+def _ngrok_config_paths() -> list[Path]:
     paths = []
+    binary = find_ngrok()
     if binary:
         try:
             out = subprocess.run([binary, "config", "check"], capture_output=True, text=True, timeout=10,
@@ -96,13 +95,24 @@ def ngrok_has_authtoken() -> bool:
         except (OSError, subprocess.TimeoutExpired):
             pass
     paths += [Path.home() / ".config" / "ngrok" / "ngrok.yml", Path.home() / ".ngrok2" / "ngrok.yml"]
-    for p in paths:
+    return paths
+
+
+def ngrok_saved_authtoken() -> str:
+    """Authtoken yang tersimpan di config ngrok, atau string kosong. Hanya untuk ditampilkan ke pemilik perangkat."""
+    for p in _ngrok_config_paths():
         try:
-            if re.search(r"^\s*authtoken\s*:", p.read_text(), re.M):
-                return True
+            m = re.search(r"^\s*authtoken\s*:\s*['\"]?([^\s'\"#]+)", p.read_text(), re.M)
         except OSError:
             continue
-    return False
+        if m:
+            return m.group(1)
+    return ""
+
+
+def ngrok_has_authtoken() -> bool:
+    """Cek apakah ada authtoken di config ngrok."""
+    return bool(ngrok_saved_authtoken())
 
 
 def parse_url(line: str) -> str | None:

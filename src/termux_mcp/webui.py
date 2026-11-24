@@ -256,6 +256,10 @@ class Panel:
                 self.token_stale = True  # server yang jalan masih memegang token lama sampai dimulai ulang
             return token
 
+    def ngrok_settings(self) -> dict:
+        """Nilai ngrok yang tersimpan, untuk mengisi form. Hanya lewat endpoint bersesi, tidak ikut /api/status."""
+        return {"authtoken": tn.ngrok_saved_authtoken(), "domain": tn.load_settings().get("domain") or ""}
+
     def save_ngrok(self, authtoken: str | None, domain: str | None):
         authtoken = (authtoken or "").strip()
         domain = tn.normalize_domain(domain)
@@ -372,6 +376,8 @@ def make_handler(panel: Panel, ui_port: int):
                 return self._json(200, panel.status())
             if path == "/api/token":
                 return self._json(200, {"token": panel.get_token()})
+            if path == "/api/ngrok":
+                return self._json(200, panel.ngrok_settings())
             self._json(404, {"error": "tidak ditemukan"})
 
         # ---- POST ----
